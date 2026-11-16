@@ -7,6 +7,8 @@ export const TABELA_FIXA = { USD: 5.60, EUR: 6.10 };
 const MOEDAS_ACEITAS = ['USD', 'EUR'];
 const MODOS_ACEITOS = ['api', 'fixa'];
 const API_COTACAO = 'https://economia.awesomeapi.com.br/json/last/';
+// Segunda fonte pública (sem chave). A AwesomeAPI costuma responder 429 para IPs de nuvem compartilhados.
+const API_COTACAO_RESERVA = 'https://open.er-api.com/v6/latest/BRL';
 
 const arredondar = (n, casas = 2) => Math.round(n * 10 ** casas) / 10 ** casas;
 
@@ -34,8 +36,35 @@ export function validar(body) {
     return { detalhes, montanteBRL, moedas, modo };
 }
 
-// Busca cotação na AwesomeAPI (pública, sem chave). Em qualquer falha devolve null.
-export async function buscarCotacoes(moedas, timeoutMs = 1500) {
+// Tenta as APIs públicas em ordem; devolve { cotacoes, fonte } ou null se nenhuma responder.
+export async function buscarCotacoes(moedas) {
+    const awesome = await buscarAwesomeApi(moedas);
+    if (awesome) return { cotacoes: awesome, fonte: 'awesomeapi' };
+    const reserva = await buscarExchangeRateApi(moedas);
+    if (reserva) return { cotacoes: reserva, fonte: 'exchangerate-api' };
+    return null;
+}
+
+// ExchangeRate-API (open access): taxas a partir do BRL; a cotação em reais é 1 / taxa.
+export async function buscarExchangeRateApi(moedas, timeoutMs = 1500) {
+    try {
+        const res = await fetch(API_COTACAO_RESERVA, { signal: AbortSignal.timeout(timeoutMs) });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const cotacoes = {};
+        for (const m of moedas) {
+            const taxa = Number(json?.rates?.[m]);
+            if (!Number.isFinite(taxa) || taxa <= 0) return null;
+            cotacoes[m] = arredondar(1 / taxa, 4);
+        }
+        return cotacoes;
+    } catch {
+        return null;
+    }
+}
+
+// AwesomeAPI (pública, sem chave). Em qualquer falha devolve null.
+export async function buscarAwesomeApi(moedas, timeoutMs = 1500) {
     try {
         const pares = moedas.map(m => `${m}-BRL`).join(',');
         const res = await fetch(API_COTACAO + pares, { signal: AbortSignal.timeout(timeoutMs) });
@@ -66,8 +95,8 @@ export async function converter(body, { simularErro = false, requestId = null, r
     let cotacoes = null;
     let fonte = 'tabela-fixa';
     if (modo === 'api') {
-        cotacoes = await buscarCotacoes(moedas);
-        if (cotacoes) fonte = 'awesomeapi';
+        const resultado = await buscarCotacoes(moedas);
+        if (resultado) ({ cotacoes, fonte } = resultado);
     }
     if (!cotacoes) {
         cotacoes = Object.fromEntries(moedas.map(m => [m, TABELA_FIXA[m]]));
