@@ -29,10 +29,12 @@ test('AWS: juros zero devolve exatamente o total investido', async () => {
     assert.equal(r.body.data.totalRendimentos, 0);
 });
 
-test('AWS: informa cold start apenas na primeira invocação', async () => {
-    // As outras invocações deste arquivo já aqueceram a instância
-    const r = await invocarAWS({ body: ENTRADA_AWS });
-    assert.equal(r.body.coldStart, false);
+test('AWS: taxa anual vira a taxa mensal equivalente (tipoTaxa)', async () => {
+    const anual = await invocarAWS({ body: { ...ENTRADA_AWS, taxaJuros: 12, tipoTaxa: 'anual' } });
+    const mensal = (Math.pow(1.12, 1 / 12) - 1) * 100;
+    assert.equal(anual.body.data.taxaMensal, Math.round(mensal * 10000) / 10000);
+    const equivalente = await invocarAWS({ body: { ...ENTRADA_AWS, taxaJuros: mensal } });
+    assert.equal(anual.body.data.montanteBruto, equivalente.body.data.montanteBruto);
 });
 
 test('AWS: 400 para parâmetros inválidos', async () => {
@@ -42,6 +44,8 @@ test('AWS: 400 para parâmetros inválidos', async () => {
         [{ ...ENTRADA_AWS, aporteInicial: -1 }, 'aporteInicial'],
         [{ ...ENTRADA_AWS, aporteMensal: 'abc' }, 'aporteMensal'],
         [{ ...ENTRADA_AWS, taxaJuros: 150 }, 'taxaJuros'],
+        [{ ...ENTRADA_AWS, tipoTaxa: 'semanal' }, 'tipoTaxa'],
+        [{ ...ENTRADA_AWS, aporteInicial: 0, aporteMensal: 0 }, 'aporteInicial'],
         [{ aporteInicial: 100 }, 'taxaJuros']
     ];
     for (const [body, campo] of casos) {
@@ -57,19 +61,21 @@ test('AWS: 400 para JSON malformado e método errado', async () => {
     assert.equal((await invocarAWS({ method: 'GET' })).status, 400);
 });
 
-test('AWS: preflight OPTIONS (Function URL / payload 2.0) e CORS', async () => {
-    const r = await invocarAWS({ method: 'OPTIONS' });
-    assert.equal(r.status, 204);
-    assert.equal(r.headers['Access-Control-Allow-Origin'], '*');
+test('AWS: OPTIONS 204 e nenhum header CORS no código (fica na Function URL, para não duplicar)', async () => {
+    for (const r of [await invocarAWS({ method: 'OPTIONS' }), await invocarAWS({ body: ENTRADA_AWS })]) {
+        const nomes = Object.keys(r.headers).map(h => h.toLowerCase());
+        assert.equal(nomes.some(h => h.startsWith('access-control-')), false, nomes.join(','));
+    }
+    assert.equal((await invocarAWS({ method: 'OPTIONS' })).status, 204);
 });
 
-test('AWS: devolve o requestId enviado no corpo (Function URL não libera o header)', async () => {
-    const r = await invocarAWS({ body: { ...ENTRADA_AWS, requestId: 'abc123' } });
-    assert.equal(r.body.requestId, 'abc123');
+test('AWS: requestId vem do header X-Request-Id (ou do corpo, como reserva)', async () => {
+    assert.equal((await invocarAWS({ body: ENTRADA_AWS, headers: { 'x-request-id': 'hdr1' } })).body.requestId, 'hdr1');
+    assert.equal((await invocarAWS({ body: { ...ENTRADA_AWS, requestId: 'abc123' } })).body.requestId, 'abc123');
 });
 
 test('AWS: aceita corpo em base64 (Function URL)', async () => {
-    const { handler } = await import('../aws-lambda/index.js');
+    const { handler } = await import('../aws-lambda/index.mjs');
     const r = await handler({
         requestContext: { http: { method: 'POST' } },
         isBase64Encoded: true,

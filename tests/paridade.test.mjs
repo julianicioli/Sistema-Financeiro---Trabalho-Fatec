@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { invocarAWS, invocarAzure, invocarGCP } from './helpers.mjs';
 
-const html = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../frontend-app/index.html', import.meta.url), 'utf8');
 
 function extrairScript(id) {
     const m = html.match(new RegExp(`<script id="${id}">([\\s\\S]*?)</script>`));

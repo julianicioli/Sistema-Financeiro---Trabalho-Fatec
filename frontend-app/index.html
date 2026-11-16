@@ -490,7 +490,7 @@
     <script id="calculos-locais">
         const arredondar = (n, casas = 2) => Math.round(n * 10 ** casas) / 10 ** casas;
 
-        // Espelho de aws-lambda/index.js (aportes no fim de cada mês)
+        // Espelho de aws-lambda/index.mjs (aportes no fim de cada mês; a taxa chega já convertida para mensal)
         function calcAWSLocal(aporteInicial, aporteMensal, taxaJurosMensal, meses) {
             const i = taxaJurosMensal / 100;
             const historico = [arredondar(aporteInicial)];
@@ -506,6 +506,7 @@
                 montanteBruto: arredondar(acumulado),
                 totalInvestido: arredondar(totalInvestido),
                 totalRendimentos: arredondar(acumulado - totalInvestido),
+                taxaMensal: arredondar(i * 100, 4),
                 historicoEvolucao: historico
             };
         }
@@ -548,8 +549,8 @@
 
         // Fonte única dos endpoints (o modal é preenchido a partir daqui)
         const endpoints = {
-            aws: 'https://najxnjvcad46j3eoua4nkqlauy0xovyy.lambda-url.sa-east-1.on.aws/',
-            azure: 'https://cambio-grupoa-fatec-aae6fbfdcnhrcnay.canadacentral-01.azurewebsites.net/api/cambio',
+            aws: 'https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/',
+            azure: 'https://conversorlegal-adfuh2h0fdf0ajdx.canadacentral-01.azurewebsites.net/api/cambio',
             gcp: 'https://inflacao-20304353773.us-central1.run.app'
         };
 
@@ -800,10 +801,9 @@
             const r = await chamarNuvem({
                 nome: 'aws',
                 url: endpoints.aws,
-                // A Function URL da AWS só libera o header Content-Type; o requestId vai no corpo.
-                body: { aporteInicial: inp.aporteInicial, aporteMensal: inp.aporteMensal, taxaJuros: inp.taxaJurosMensal, tempoMeses: inp.tempoMeses, requestId },
+                body: { aporteInicial: inp.aporteInicial, aporteMensal: inp.aporteMensal, taxaJuros: inp.taxaJurosMensal, tempoMeses: inp.tempoMeses },
                 simularFalha: document.getElementById('failAWS').checked,
-                enviarRequestIdHeader: false,
+                enviarRequestIdHeader: true,
                 requestId,
                 calcLocal: () => calcAWSLocal(inp.aporteInicial, inp.aporteMensal, inp.taxaJurosMensal, inp.tempoMeses)
             });

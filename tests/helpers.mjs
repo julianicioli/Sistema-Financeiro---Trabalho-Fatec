@@ -2,9 +2,8 @@
 // adaptadores que as invocam como se fossem chamadas HTTP.
 import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
 
-export const awsHandler = require('../aws-lambda/index.js').handler;
+export const { handler: awsHandler } = await import('../aws-lambda/index.mjs');
 export const { projetorInflacao: gcpHandler } = await import('../google-functions/index.js');
 
 // Azure (modelo v4): captura o handler registrado em app.http('cambio', ...)

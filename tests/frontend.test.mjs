@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import { invocarAWS, invocarAzure, invocarGCP } from './helpers.mjs';
 
-const html = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../frontend-app/index.html', import.meta.url), 'utf8');
 
 const ROTAS = {
     'aws.test': invocarAWS,
@@ -124,11 +124,11 @@ test('card da Azure mostra a fonte da cotação com a atribuição da ExchangeRa
     assert.equal($('fonteCambio').textContent, 'Tabela fixa (reserva)');
 });
 
-test('X-Request-Id: AWS recebe no corpo; Azure e GCP no header; o mesmo id nas três', async () => {
+test('X-Request-Id: o mesmo id vai no header das três nuvens', async () => {
     await rodar();
     const id = texto('lastRequestId');
     assert.match(id, /^[a-z0-9]{12}$/i);
-    assert.equal(chamadas.find(c => c.host === 'aws.test').body.requestId, id);
+    assert.equal(chamadas.find(c => c.host === 'aws.test').headers['x-request-id'], id);
     assert.equal(chamadas.find(c => c.host === 'azure.test').headers['x-request-id'], id);
     assert.equal(chamadas.find(c => c.host === 'gcp.test').headers['x-request-id'], id);
     assert.equal(json('aws').requestId, id);
@@ -188,20 +188,22 @@ test('falha de rede na GCP: fallback, demais nuvens intactas e "Tentar de novo" 
 });
 
 test('erro 400 de validação é exibido (não é mascarado por fallback)', async () => {
-    preencher({ aporteInicial: 0, aporteMensal: 0 }); // montante 0 -> Azure e GCP exigem > 0
+    preencher({ taxaInflacao: 150 }); // a GCP aceita de -10 a 100
     await rodar();
     assert.equal(texto('badgeGCP'), '400 Inválido');
     assert.equal(texto('gcpStatusDisplay'), 'HTTP 400 Bad Request');
-    assert.equal(json('gcp').detalhes[0].campo, 'montanteBruto');
+    assert.equal(json('gcp').detalhes[0].campo, 'taxaInflacao');
     assert.equal(texto('valMontanteReal'), 'Serviço Indisponível');
-    assert.equal(texto('badgeAzure'), '400 Inválido');
+    assert.equal(texto('badgeAWS'), '200 OK');
+    assert.equal(texto('badgeAzure'), '200 OK');
     assert.equal(visivel('warnGCP'), false);
     assert.equal(grafico()[1].data.length, 0); // curva IPCA some quando a GCP não respondeu
 });
 
 test('400 na AWS interrompe a cascata com mensagem de dependência', async () => {
-    preencher({ taxaJuros: 150 }); // acima do limite da AWS (0 a 100)
+    preencher({ aporteInicial: 0, aporteMensal: 0 }); // a Lambda exige algum aporte maior que 0
     await rodar();
+    assert.equal(json('aws').detalhes[0].campo, 'aporteInicial');
     assert.equal(texto('badgeAWS'), '400 Inválido');
     assert.equal(texto('badgeAzure'), 'Indisponível');
     assert.equal(json('azure').erro, 'DEPENDENCIA');
@@ -229,12 +231,21 @@ test('modo mock: nenhuma requisição HTTP; falha forçada vira fallback', async
     assert.equal(texto('badgeAzure'), 'Fallback local');
 });
 
-test('cold/warm vem da própria função', async () => {
+test('cold/warm vem da própria função quando ela informa (Azure e GCP)', async () => {
     await rodar();
-    for (const [cloud, id] of [['aws', 'AWS'], ['azure', 'Azure'], ['gcp', 'GCP']]) {
+    for (const [cloud, id] of [['azure', 'Azure'], ['gcp', 'GCP']]) {
         assert.equal(typeof json(cloud).coldStart, 'boolean', cloud);
         assert.equal(texto(`type${id}`), json(cloud).coldStart ? 'Cold Start' : 'Warm Start', cloud);
     }
+});
+
+test('sem coldStart na resposta (Lambda atual), a 1ª chamada da aba conta como cold', async () => {
+    win.eval('limparMetricas()');
+    await rodar();
+    assert.equal(json('aws').coldStart, undefined);
+    assert.equal(texto('typeAWS'), 'Cold Start');
+    await rodar();
+    assert.equal(texto('typeAWS'), 'Warm Start');
 });
 
 test('painel de métricas registra cada chamada com resultado e latência', async () => {

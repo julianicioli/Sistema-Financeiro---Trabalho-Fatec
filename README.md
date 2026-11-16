@@ -1,55 +1,83 @@
-# Sistema Financeiro Multicloud — Trabalho Fatec
+# SaaS Financeiro Multicloud - Grupo A
 
-SaaS de projeção de investimentos em que cada cálculo roda numa FaaS serverless de uma nuvem pública diferente, com fallback isolado (*graceful degradation*).
+Trabalho da Atividade Prática 04 de Computação em Nuvem I (Fatec Itapira, Prof. Reginaldo).
 
-Fatec Itapira · Computação em Nuvem I · Atividade Prática 04 · Grupo A
+A ideia é simular um investimento: o usuário preenche aporte inicial, aporte mensal, taxa, tempo e inflação, e o site mostra o resultado calculado por três funções serverless, uma em cada nuvem.
 
-## Arquitetura
+## Integrantes
 
-```
-web/index.html ──POST──▶ AWS Lambda        juros compostos  → montanteBruto, histórico
-        │                     │ montanteBruto
-        ├──POST──▶ Azure Functions   câmbio BRL → USD/EUR (cotação AwesomeAPI, tabela fixa de reserva)
-        └──POST──▶ Google Cloud      inflação (IPCA) → valor real
-```
+- João Lucas Altafini
+- Julia Nicioli
+- João Gabriel Moimaz
+- Luan Trani
 
-A AWS roda primeiro; Azure e GCP recebem o montante dela e rodam em paralelo.
-Se uma nuvem falha (rede, timeout ou HTTP 5xx), o navegador calcula o mesmo resultado
-localmente e o card mostra **Fallback local** com o motivo (status HTTP, timeout ou rede). Erros **400**
-(entrada inválida) são exibidos como estão, sem fallback.
+## Links
 
-| Pasta | Função | Entrada (POST JSON) |
+Site: https://saas-financeiro-grupo-a.vercel.app
+
+Funções (todas recebem `POST` com JSON):
+
+| Nuvem | Função | URL |
 |---|---|---|
-| `aws-lambda/` | `handler` | `aporteInicial`, `aporteMensal`, `taxaJuros` (% a.m., 0–100), `tempoMeses` (1–600) |
-| `azure-functions/src/` (modelo v4) | `cambio` → `POST /api/cambio` | `montanteBRL` (> 0), `moedas`? (`["USD","EUR"]`), `modo`? (`api` ou `fixa`) |
-| `google-functions/` | `projetorInflacao` | `montanteBruto` (> 0), `totalInvestido`, `taxaInflacao` (% a.a., −10–100), `tempoMeses` |
+| AWS Lambda | Juros compostos | https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/ |
+| Azure Functions | Conversão de câmbio (BRL para USD e EUR) | https://conversorlegal-adfuh2h0fdf0ajdx.canadacentral-01.azurewebsites.net/api/cambio |
+| Google Cloud | Inflação e poder de compra (IPCA) | https://inflacao-20304353773.us-central1.run.app |
 
-O X-Request-Id vai no header para Azure e GCP e no corpo para a AWS, porque o CORS da Function URL só libera `Content-Type`.
+## Como funciona
 
-Todas seguem o mesmo contrato:
+```
+Usuário -> Site (Vercel) -> AWS (calcula o montante)
+                         -> Azure e Google Cloud (em paralelo, usando o montante da AWS)
+```
 
-- `200` → `{ status: "success", provider, coldStart, data }`
-- `400` → `{ status: "error", erro: "VALIDACAO", detalhes: [{ campo, mensagem }] }`
-- `500` → `{ status: "error", erro: "INTERNO", mensagem }`; `?simularErro=true` força esse caso (usado pelas caixas "Simular falha" do site)
+O site chama a AWS primeiro e depois a Azure e o Google Cloud ao mesmo tempo. Se alguma nuvem falhar ou demorar mais de 4 segundos, só aquele card mostra "Serviço Temporariamente Indisponível" e o valor é calculado no próprio navegador. Os outros cards continuam normais.
 
-Convenção financeira: aportes mensais feitos no **fim** de cada mês.
+As funções respondem 200 quando dá certo, 400 quando algum dado é inválido e 500 em caso de erro. Os detalhes de cada endpoint (entradas, saídas e exemplos) estão no documento técnico em PDF.
 
-## Deploy
+## Como testar
 
-- **AWS Lambda** (Node.js 22): publicar `aws-lambda/index.js`, handler `index.handler`. Na Function URL, usar *Auth type* `NONE`, com a política de recurso permitindo `lambda:InvokeFunctionUrl` **e** `lambda:InvokeFunction` para o principal `*`.
-- **Azure Functions** (Node.js 22, modelo de programação v4): publicar a pasta `azure-functions/` inteira (`host.json` na raiz dela, código em `src/`). A URL fica `https://<app>.azurewebsites.net/api/cambio`. A cotação vem da AwesomeAPI ou da ExchangeRate-API, consultadas em paralelo (vale a primeira que responder; pior caso ~1,5 s) e guardadas em cache por 5 minutos. Se as duas falharem, a função usa a tabela fixa (USD 5,60 / EUR 6,10). A origem fica em `data.fonte` e aparece no card. **CORS:** em *Function App → API → CORS*, deixe só `*`; com outra origem na lista, a plataforma responde o preflight do navegador sem os headers e o site cai no fallback.
-- **Google Cloud** (Node.js 22): `gcloud functions deploy projetorInflacao --gen2 --runtime=nodejs22 --trigger-http --allow-unauthenticated --source=google-functions`.
-- **Site**: `web/` é estático (ex.: Vercel). As URLs ficam no objeto `endpoints` do `web/index.html` ou podem ser trocadas pela engrenagem da página. Campo vazio = cálculo local.
+Pelo site:
 
-## Testes
+1. Abra o link do site e clique em "Executar Projeção Multicloud".
+2. Os três cards devem mostrar "200 OK" e o tempo de resposta de cada nuvem.
+3. Para testar a falha, marque "Simular falha" em uma das nuvens e execute de novo. Só aquele card cai para o cálculo local.
+4. O painel de métricas no fim da página mostra o tempo de cada chamada e permite exportar em CSV.
+
+Direto na função (exemplo com a AWS):
 
 ```bash
-npm install                      # jsdom (testes do front-end)
+curl -X POST https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/ \
+  -H "Content-Type: application/json" \
+  -d '{"aporteInicial":1000,"aporteMensal":200,"taxaJuros":12,"tipoTaxa":"anual","tempoMeses":24}'
+```
+
+Adicionando `?simularErro=true` no final da URL, a função devolve erro 500 (usamos isso na apresentação).
+
+Para rodar o site no computador:
+
+```bash
+cd frontend-app
+npx http-server -p 5173
+```
+
+## Testes automatizados
+
+```bash
+npm install
 npm install --prefix google-functions
 npm install --prefix azure-functions
 npm test
 ```
 
-- `tests/backends.test.mjs`: cálculos, validação 400, `simularErro` 500, CORS/OPTIONS das três funções.
-- `tests/paridade.test.mjs`: o cálculo local do navegador precisa dar exatamente o mesmo resultado das funções.
-- `tests/frontend.test.mjs`: roda a página no jsdom com as funções reais por trás e cobre cascata, fallback, erros 400, modo mock, gráfico e descarte de execuções antigas.
+Os testes rodam as três funções localmente (cálculo, erros 400 e 500, CORS), conferem se o cálculo de reserva do site dá o mesmo resultado das funções e abrem o site num navegador simulado para testar a cascata, o fallback e o painel de métricas.
+
+## Estrutura
+
+```
+aws-lambda/        função da AWS
+azure-functions/   função da Azure
+google-functions/  função do Google Cloud
+frontend-app/      site (index.html)
+docs/              documento técnico
+tests/             testes automatizados
+```
