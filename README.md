@@ -14,10 +14,10 @@ O usuário informa um plano de investimento e recebe três respostas, cada uma c
 
 | Nome | GitHub |
 |---|---|
-| _(preencher)_ | [@julianicioli](https://github.com/julianicioli) |
-| _(preencher)_ | [@GabrielMS17](https://github.com/GabrielMS17) |
-| _(preencher)_ | [@JLBatista](https://github.com/JLBatista) |
-| _(preencher)_ | |
+| João Lucas Altafini | [@JLBatista](https://github.com/JLBatista) |
+| Julia Nicioli | [@julianicioli](https://github.com/julianicioli) |
+| João Gabriel Moimaz | [@GabrielMS17](https://github.com/GabrielMS17) |
+| Luan Trani | — |
 
 ## Links ativos
 
@@ -163,7 +163,7 @@ curl -X POST "https://inflacao-20304353773.us-central1.run.app?simularErro=true"
 ### Localmente
 ```bash
 # Frontend (qualquer servidor estático)
-cd web && npx http-server -p 5173
+cd frontend-app && npx http-server -p 5173
 
 # Função GCP
 cd google-functions && npm install && npx functions-framework --target=projetorInflacao --port=8080
@@ -176,7 +176,7 @@ O frontend local em `http://localhost:5173` chama as funções reais na nuvem (o
 aws-lambda/          index.mjs (handler da Lambda) e package.json
 azure-functions/     host.json, package.json e src/ (modelo v4: src/functions/cambio.js + src/cambio.js)
 google-functions/    index.js (Functions Framework) e package.json
-web/                 index.html — frontend único (HTML, Tailwind, Chart.js, fetch)
+frontend-app/        index.html — frontend único (HTML, Tailwind, Chart.js, fetch)
 ```
 
 ## Como foi feito o deploy
@@ -186,7 +186,7 @@ web/                 index.html — frontend único (HTML, Tailwind, Chart.js, f
 | AWS | Lambda + **Function URL** | Node.js 22, `sa-east-1`, 256 MB, timeout 10 s; auth `NONE`; permissões públicas `lambda:InvokeFunctionUrl` e `lambda:InvokeFunction` (via Function URL); CORS na própria Function URL |
 | Azure | Functions — plano **Consumo Flexível** | Node.js 22, `canadacentral`, 512 MB; HTTP Trigger `authLevel: anonymous`; CORS no Function App. Deploy por zip com `az functionapp deployment source config-zip` (Cloud Shell) |
 | GCP | **Cloud Run functions** | Node.js 22, `us-central1`, máximo 2 instâncias; acesso público (invocação não autenticada); editor in-line do console |
-| Frontend | **Vercel** | pasta `web`, preset *Other*, sem build; publicado com `npx vercel deploy --prod` |
+| Frontend | **Vercel** | pasta `frontend-app`, preset *Other*, sem build; publicado com `npx vercel deploy --prod` |
 
 Observações da assinatura **Azure for Students**: ela só permite algumas regiões (Brazil South foi recusada) e não tem cota para o plano de Consumo clássico (Y1), por isso o plano Flex em Canada Central.
 
