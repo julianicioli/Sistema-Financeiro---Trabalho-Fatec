@@ -644,11 +644,12 @@
                     awsResult = await res.json();
                 } catch (e) {
                     console.warn("AWS Fallback deployed:", e);
-                    awsResult = { status: 'fallback', error: e.message, ...calcAWSLocal(aporteInicial, aporteMensal, taxaJuros, tempoMeses) };
+                    awsResult = { ...calcAWSLocal(aporteInicial, aporteMensal, taxaJuros, tempoMeses), status: 'fallback', error: e.message };
                 }
             } else {
                 await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
                 awsResult = calcAWSLocal(aporteInicial, aporteMensal, taxaJuros, tempoMeses);
+                if (executionMode === 'real') awsResult = { ...awsResult, status: 'fallback', error: 'URL da AWS não configurada' };
             }
             const latAWS = Math.round(performance.now() - t0AWS);
 
@@ -678,11 +679,12 @@
                     azureResult = await res.json();
                 } catch (e) {
                     console.warn("Azure Fallback deployed:", e);
-                    azureResult = { status: 'fallback', error: e.message, ...calcAzureLocal(montanteBruto) };
+                    azureResult = { ...calcAzureLocal(montanteBruto), status: 'fallback', error: e.message };
                 }
             } else {
                 await new Promise(r => setTimeout(r, 180 + Math.random() * 250));
                 azureResult = calcAzureLocal(montanteBruto);
+                if (executionMode === 'real') azureResult = { ...azureResult, status: 'fallback', error: 'URL da Azure não configurada' };
             }
             const latAzure = Math.round(performance.now() - t0Azure);
 
@@ -708,11 +710,12 @@
                     gcpResult = await res.json();
                 } catch (e) {
                     console.warn("GCP Fallback deployed:", e);
-                    gcpResult = { status: 'fallback', error: e.message, ...calcGCPLocal(montanteBruto, totalInvestido, taxaInflacao, tempoMeses) };
+                    gcpResult = { ...calcGCPLocal(montanteBruto, totalInvestido, taxaInflacao, tempoMeses), status: 'fallback', error: e.message };
                 }
             } else {
                 await new Promise(r => setTimeout(r, 120 + Math.random() * 180));
                 gcpResult = calcGCPLocal(montanteBruto, totalInvestido, taxaInflacao, tempoMeses);
+                if (executionMode === 'real') gcpResult = { ...gcpResult, status: 'fallback', error: 'URL do GCP não configurada' };
             }
             const latGCP = Math.round(performance.now() - t0GCP);
 
@@ -743,7 +746,8 @@
 
             if (res && res.status !== 'error') {
                 badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-                badge.innerText = res.status === 'fallback' ? '200 OK (Fallback)' : '200 OK';
+                badge.innerText = res.status === 'fallback' ? 'Fallback local' : '200 OK';
+                if (res.status === 'fallback') badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20";
                 card.className = "bg-slate-900 border border-amber-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
 
                 document.getElementById('valMontanteBruto').innerText = formatBRL(res.data.montanteBruto);
@@ -783,7 +787,8 @@
 
             if (res && res.status !== 'error') {
                 badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-                badge.innerText = res.status === 'fallback' ? '200 OK (Fallback)' : '200 OK';
+                badge.innerText = res.status === 'fallback' ? 'Fallback local' : '200 OK';
+                if (res.status === 'fallback') badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20";
                 card.className = "bg-slate-900 border border-sky-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
 
                 document.getElementById('valUSD').innerText = formatUSD(res.data.valorUSD);
@@ -823,7 +828,8 @@
 
             if (res && res.status !== 'error') {
                 badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-                badge.innerText = res.status === 'fallback' ? '200 OK (Fallback)' : '200 OK';
+                badge.innerText = res.status === 'fallback' ? 'Fallback local' : '200 OK';
+                if (res.status === 'fallback') badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20";
                 card.className = "bg-slate-900 border border-indigo-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
 
                 document.getElementById('valMontanteReal').innerText = formatBRL(res.data.montanteReal);
