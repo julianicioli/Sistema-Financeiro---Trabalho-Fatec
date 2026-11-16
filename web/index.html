@@ -83,11 +83,11 @@
             <!-- Mode Selector and Config -->
             <div class="flex items-center gap-2 sm:gap-4">
                 <div class="flex items-center bg-slate-800/80 rounded-lg p-1 border border-slate-700/60">
-                    <button id="modeMockBtn" onclick="setExecutionMode('mock')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 bg-slate-700 text-white shadow-sm">
+                    <button id="modeMockBtn" onclick="setExecutionMode('mock')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
                         <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-400"></i>
                         <span>Mock Local</span>
                     </button>
-                    <button id="modeRealBtn" onclick="setExecutionMode('real')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
+                    <button id="modeRealBtn" onclick="setExecutionMode('real')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 bg-blue-600 text-white shadow-sm">
                         <i data-lucide="cloud" class="w-3.5 h-3.5 text-blue-400"></i>
                         <span>APIs Reais</span>
                     </button>
@@ -447,11 +447,11 @@
 
     <!-- Application Script Logic -->
     <script>
-        let executionMode = 'mock'; // 'mock' or 'real'
+        let executionMode = 'real'; // 'mock' or 'real' (abre chamando as nuvens)
         let chartInstance = null;
 
         let endpoints = {
-            aws: 'https://najxnjvcad46j3eoua4nkqlauy0xovyy.lambda-url.sa-east-1.on.aws/ ',
+            aws: 'https://najxnjvcad46j3eoua4nkqlauy0xovyy.lambda-url.sa-east-1.on.aws/',
             azure: '',
             gcp: 'https://inflacao-20304353773.us-central1.run.app'
         };
