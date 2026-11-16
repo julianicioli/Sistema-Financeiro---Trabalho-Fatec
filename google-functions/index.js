@@ -42,7 +42,12 @@ function validar(body) {
 
 const arredondar = (n) => Math.round(n * 100) / 100;
 
-http('projetorInflacao', (req, res) => {
+// Fica true só na primeira invocação de cada instância (cold start real)
+let coldStart = true;
+
+export function projetorInflacao(req, res) {
+    const eraColdStart = coldStart;
+    coldStart = false;
     const requestId = req.get('X-Request-Id') || null;
 
     // CORS Headers
@@ -89,6 +94,7 @@ http('projetorInflacao', (req, res) => {
         res.status(200).json({
             status: 'success',
             provider: 'Google Cloud Functions (us-central1)',
+            coldStart: eraColdStart,
             data: {
                 montanteReal: arredondar(montanteReal),
                 perdaPoderCompra: arredondar(perdaPoderCompra),
@@ -101,4 +107,6 @@ http('projetorInflacao', (req, res) => {
         console.error('[projetorInflacao]', requestId, error);
         res.status(500).json({ status: 'error', erro: 'INTERNO', mensagem: error.message, requestId });
     }
-});
+}
+
+http('projetorInflacao', projetorInflacao);
