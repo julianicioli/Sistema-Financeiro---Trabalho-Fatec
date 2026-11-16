@@ -1,10 +1,11 @@
 {
   "name": "aws-juros-compostos",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Função AWS Lambda para cálculo de juros compostos (Grupo A)",
-  "main": "index.js",
+  "main": "index.mjs",
+  "type": "module",
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "dependencies": {}
 }
