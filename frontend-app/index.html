@@ -38,9 +38,9 @@
         }
     </script>
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
         body {
@@ -75,7 +75,7 @@
             <div class="flex items-center space-x-3">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-blue-500 to-emerald-500 p-0.5 flex items-center justify-center">
                     <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                        <i data-lucide="line-chart" class="w-5 h-5 text-amber-400"></i>
+                        <i data-lucide="chart-line" class="w-5 h-5 text-amber-400"></i>
                     </div>
                 </div>
             </div>
@@ -137,7 +137,7 @@
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                         <h3 class="text-base font-semibold text-white flex items-center gap-2">
-                            <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i> Parâmetros do Simulado
+                            <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i> Parâmetros da Simulação
                         </h3>
                         <span class="text-xs text-slate-500 font-mono">BRL (R$)</span>
                     </div>
@@ -172,13 +172,13 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Tempo (Meses)</label>
-                                <input type="number" id="tempoMeses" value="24" step="1" min="1" max="360" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition font-mono">
+                                <input type="number" id="tempoMeses" value="24" step="1" min="1" max="600" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition font-mono">
                             </div>
                         </div>
 
                         <div class="pt-2 border-t border-slate-800/80">
                             <label class="block text-xs font-medium text-slate-400 mb-1">Inflação Anual IPCA (%)</label>
-                            <input type="number" id="taxaInflacao" value="4.5" step="0.1" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition font-mono">
+                            <input type="number" id="taxaInflacao" value="4.5" step="0.1" min="-10" max="100" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition font-mono">
                         </div>
 
                         <button type="submit" id="btnRun" class="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/20 active:scale-[0.99] transition flex items-center justify-center gap-2">
@@ -297,6 +297,10 @@
                                     <span>Cotação Aplicada:</span>
                                     <span id="valCambio" class="font-mono text-sky-400">--</span>
                                 </div>
+                                <div class="flex justify-between">
+                                    <span>Fonte:</span>
+                                    <span id="fonteCambio" class="text-slate-300 text-right">--</span>
+                                </div>
                             </div>
                         </div>
 
@@ -333,7 +337,7 @@
                                     <span id="valPerdaInflacao" class="font-mono text-rose-400">R$ --</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span>Ganho Real Lído:</span>
+                                    <span>Ganho Real Líquido:</span>
                                     <span id="valLucroReal" class="font-mono text-emerald-400">R$ --</span>
                                 </div>
                             </div>
@@ -353,9 +357,9 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                         <div>
                             <h3 class="text-base font-semibold text-white flex items-center gap-2">
-                                <i data-lucide="area-chart" class="w-4 h-4 text-emerald-400"></i> Evolução Patrimonial vs. Inflação
+                                <i data-lucide="chart-area" class="w-4 h-4 text-emerald-400"></i> Evolução Patrimonial vs. Inflação
                             </h3>
-                            <p class="text-xs text-slate-400">Comparativo entre Montante Bruto (AWS), Valor Corrigido (GCP) e Total Investido</p>
+                            <p class="text-xs text-slate-400">Comparativo entre Montante Bruto (AWS), Valor Corrigido pelo IPCA e Total Investido</p>
                         </div>
                     </div>
 
@@ -389,7 +393,7 @@
 
                     <div id="tabAzure" class="tab-content space-y-2 hidden">
                         <div class="flex items-center justify-between text-xs font-mono text-slate-400">
-                            <span id="azureEndpointDisplay">POST /azure/conversor-cambio</span>
+                            <span id="azureEndpointDisplay">POST /api/cambio</span>
                             <span id="azureStatusDisplay" class="text-slate-500">HTTP --</span>
                         </div>
                         <pre id="azureJsonDisplay" class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-[11px] font-mono text-slate-300 overflow-x-auto max-h-40">{ "message": "Aguardando execução da requisição..." }</pre>
@@ -425,7 +429,7 @@
                             <tbody id="metricsBody"></tbody>
                         </table>
                     </div>
-                    <p class="text-[10px] text-slate-500">"Cold" é a 1ª chamada a cada nuvem nesta aba; para medir cold start real, deixe a função parada por ~15 min antes. Médias consideram só respostas reais (sem fallback).</p>
+                    <p class="text-[10px] text-slate-500">Cold/Warm vem da própria função (campo coldStart); quando ela não informa, a 1ª chamada da aba conta como cold. Médias consideram só respostas reais (sem fallback).</p>
                 </div>
 
             </div>
@@ -450,23 +454,23 @@
             </div>
 
             <p class="text-xs text-slate-400">
-                Insira as URLs públicas disponibilizadas nos consoles da AWS, Azure e Google Cloud Platform:
+                Insira as URLs públicas disponibilizadas nos consoles da AWS, Azure e Google Cloud Platform. Campo vazio = cálculo local (fallback).
             </p>
 
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-amber-400 mb-1">AWS Lambda Function URL / API Gateway</label>
-                    <input type="url" id="endpointAWS" value="https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/" placeholder="https://abc.execute-api.us-east-1.amazonaws.com/prod/calc" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-amber-500 focus:outline-none">
+                    <input type="url" id="endpointAWS" placeholder="https://xxxx.lambda-url.sa-east-1.on.aws/" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-amber-500 focus:outline-none">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-sky-400 mb-1">Azure Function HTTP Trigger URL</label>
-                    <input type="url" id="endpointAzure" value="https://cambio-grupoa-fatec-aae6fbfdcnhrcnay.canadacentral-01.azurewebsites.net/api/cambio" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-sky-500 focus:outline-none">
+                    <input type="url" id="endpointAzure" placeholder="https://seu-app.azurewebsites.net/api/cambio" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-sky-500 focus:outline-none">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-indigo-400 mb-1">GCP Cloud Run / Functions HTTP URL</label>
-                    <input type="url" id="endpointGCP" value="https://inflacao-20304353773.us-central1.run.app" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-indigo-500 focus:outline-none">
+                    <input type="url" id="endpointGCP" placeholder="https://xxxx.us-central1.run.app" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-indigo-500 focus:outline-none">
                 </div>
             </div>
 
@@ -481,56 +485,191 @@
         </div>
     </div>
 
+    <!-- Cálculos locais (fallback / modo mock). Espelham exatamente as funções serverless:
+         tests/paridade.test.mjs garante que os resultados continuam idênticos. -->
+    <script id="calculos-locais">
+        const arredondar = (n, casas = 2) => Math.round(n * 10 ** casas) / 10 ** casas;
+
+        // Espelho de aws-lambda/index.mjs (aportes no fim de cada mês; a taxa chega já convertida para mensal)
+        function calcAWSLocal(aporteInicial, aporteMensal, taxaJurosMensal, meses) {
+            const i = taxaJurosMensal / 100;
+            const historico = [arredondar(aporteInicial)];
+            let acumulado = aporteInicial;
+
+            for (let m = 1; m <= meses; m++) {
+                acumulado = acumulado * (1 + i) + aporteMensal;
+                historico.push(arredondar(acumulado));
+            }
+
+            const totalInvestido = aporteInicial + aporteMensal * meses;
+            return {
+                montanteBruto: arredondar(acumulado),
+                totalInvestido: arredondar(totalInvestido),
+                totalRendimentos: arredondar(acumulado - totalInvestido),
+                taxaMensal: arredondar(i * 100, 4),
+                historicoEvolucao: historico
+            };
+        }
+
+        // Espelho de azure-functions/src/cambio.js com a tabela fixa de reserva (modo "fixa")
+        function calcAzureLocal(montanteBRL) {
+            const tabela = { USD: 5.60, EUR: 6.10 };
+            const conversoes = Object.fromEntries(
+                Object.entries(tabela).map(([m, cotacao]) => [m, { cotacao, valor: arredondar(montanteBRL / cotacao) }])
+            );
+            return {
+                valorBRL: arredondar(montanteBRL),
+                valorUSD: conversoes.USD.valor,
+                valorEUR: conversoes.EUR.valor,
+                cotacaoUSD: conversoes.USD.cotacao,
+                cotacaoEUR: conversoes.EUR.cotacao,
+                conversoes,
+                fonte: 'tabela-fixa'
+            };
+        }
+
+        // Espelho de google-functions/index.js
+        function calcGCPLocal(montanteBruto, totalInvestido, taxaInflacaoAnual, meses) {
+            const inflacaoMensal = Math.pow(1 + (taxaInflacaoAnual / 100), 1 / 12) - 1;
+            const fatorInflacao = Math.pow(1 + inflacaoMensal, meses);
+            const montanteReal = montanteBruto / fatorInflacao;
+            return {
+                montanteReal: arredondar(montanteReal),
+                perdaPoderCompra: arredondar(montanteBruto - montanteReal),
+                ganhoRealLiquido: arredondar(montanteReal - totalInvestido),
+                taxaInflacaoAcumulada: arredondar((fatorInflacao - 1) * 100)
+            };
+        }
+    </script>
+
     <!-- Application Script Logic -->
-    <script>
-        let executionMode = 'real'; // 'mock' or 'real' (abre chamando as nuvens)
+    <script id="app">
+        let executionMode = 'real'; // 'mock' ou 'real' (abre chamando as nuvens)
         let chartInstance = null;
 
-        let endpoints = {
+        // Fonte única dos endpoints (o modal é preenchido a partir daqui)
+        const endpoints = {
             aws: 'https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/',
-            azure: 'https://cambio-grupoa-fatec-aae6fbfdcnhrcnay.canadacentral-01.azurewebsites.net/api/cambio',
+            azure: 'https://conversorlegal-adfuh2h0fdf0ajdx.canadacentral-01.azurewebsites.net/api/cambio',
             gcp: 'https://inflacao-20304353773.us-central1.run.app'
         };
 
-        let callCount = {
-            aws: 0,
-            azure: 0,
-            gcp: 0
+        const callCount = { aws: 0, azure: 0, gcp: 0 };
+
+        const BADGE_BASE = 'text-[10px] font-semibold px-2 py-0.5 rounded-full border ';
+        const CARD_BASE = 'bg-slate-900 border rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300 ';
+        const ESTILOS = {
+            ok: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+            fallback: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+            erro: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+            carregando: 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
+        };
+
+        // Configuração visual de cada nuvem (usada pelo atualizador genérico de cards)
+        const NUVENS = {
+            aws: {
+                id: 'AWS',
+                bordaOk: 'border-amber-500/30',
+                preencher: (d) => {
+                    setText('valMontanteBruto', formatBRL(d.montanteBruto));
+                    setText('valTotalInvestido', formatBRL(d.totalInvestido));
+                    setText('valLucroBruto', formatBRL(d.totalRendimentos));
+                },
+                limpar: () => {
+                    setText('valMontanteBruto', 'Serviço Indisponível');
+                    setText('valTotalInvestido', 'R$ --');
+                    setText('valLucroBruto', 'R$ --');
+                }
+            },
+            azure: {
+                id: 'Azure',
+                bordaOk: 'border-sky-500/30',
+                preencher: (d) => {
+                    setText('valUSD', formatUSD(d.valorUSD));
+                    setText('valEUR', formatEUR(d.valorEUR));
+                    setText('valCambio', `1 USD = R$ ${Number(d.cotacaoUSD).toFixed(2)}`);
+                    mostrarFonteCambio(d.fonte);
+                },
+                limpar: () => {
+                    setText('valUSD', 'Serviço Indisponível');
+                    setText('valEUR', '€ --');
+                    setText('valCambio', '--');
+                    mostrarFonteCambio(null);
+                }
+            },
+            gcp: {
+                id: 'GCP',
+                bordaOk: 'border-indigo-500/30',
+                preencher: (d) => {
+                    setText('valMontanteReal', formatBRL(d.montanteReal));
+                    setText('valPerdaInflacao', formatBRL(d.perdaPoderCompra));
+                    setText('valLucroReal', formatBRL(d.ganhoRealLiquido));
+                },
+                limpar: () => {
+                    setText('valMontanteReal', 'Serviço Indisponível');
+                    setText('valPerdaInflacao', 'R$ --');
+                    setText('valLucroReal', 'R$ --');
+                }
+            }
         };
 
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             initChart();
+            renderMetricas();
             runMulticloudSimulation();
         });
+
+        function setText(id, texto) {
+            document.getElementById(id).innerText = texto;
+        }
+
+        // De onde veio a cotação da Azure. O link é a atribuição exigida pelo plano gratuito da ExchangeRate-API.
+        const FONTES_CAMBIO = {
+            'awesomeapi': '<a href="https://docs.awesomeapi.com.br/api-de-moedas" target="_blank" rel="noopener" class="underline hover:text-white">AwesomeAPI</a> (ao vivo)',
+            'exchangerate-api': '<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener" class="underline hover:text-white">Rates By Exchange Rate API</a>',
+            'tabela-fixa': 'Tabela fixa (reserva)'
+        };
+
+        function mostrarFonteCambio(fonte) {
+            document.getElementById('fonteCambio').innerHTML = fonte ? (FONTES_CAMBIO[fonte] || escaparHTML(fonte)) : '--';
+        }
 
         function setExecutionMode(mode) {
             executionMode = mode;
             const mockBtn = document.getElementById('modeMockBtn');
             const realBtn = document.getElementById('modeRealBtn');
+            const ativo = 'px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 text-white shadow-sm ';
+            const inativo = 'px-3 py-1.5 text-xs font-medium rounded-md transition-all text-slate-400 hover:text-white flex items-center gap-1.5';
 
             if (mode === 'mock') {
-                mockBtn.className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 bg-slate-700 text-white shadow-sm";
-                realBtn.className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all text-slate-400 hover:text-white flex items-center gap-1.5";
+                mockBtn.className = ativo + 'bg-slate-700';
+                realBtn.className = inativo;
             } else {
-                realBtn.className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 bg-blue-600 text-white shadow-sm";
-                mockBtn.className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all text-slate-400 hover:text-white flex items-center gap-1.5";
-                
+                realBtn.className = ativo + 'bg-blue-600';
+                mockBtn.className = inativo;
                 if (!endpoints.aws || !endpoints.azure || !endpoints.gcp) {
-                    toggleEndpointModal();
+                    toggleEndpointModal(true);
                 }
             }
         }
 
-        function toggleEndpointModal() {
-            document.getElementById('endpointModal').classList.toggle('hidden');
+        function toggleEndpointModal(abrir) {
+            const modal = document.getElementById('endpointModal');
+            const vaiAbrir = typeof abrir === 'boolean' ? abrir : modal.classList.contains('hidden');
+            if (vaiAbrir) {
+                document.getElementById('endpointAWS').value = endpoints.aws;
+                document.getElementById('endpointAzure').value = endpoints.azure;
+                document.getElementById('endpointGCP').value = endpoints.gcp;
+            }
+            modal.classList.toggle('hidden', !vaiAbrir);
         }
 
         function saveEndpoints() {
             endpoints.aws = document.getElementById('endpointAWS').value.trim();
             endpoints.azure = document.getElementById('endpointAzure').value.trim();
             endpoints.gcp = document.getElementById('endpointGCP').value.trim();
-            toggleEndpointModal();
+            toggleEndpointModal(false);
             runMulticloudSimulation();
         }
 
@@ -546,20 +685,22 @@
             return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
         }
 
-        function switchTab(cloud) {
-            ['aws', 'azure', 'gcp'].forEach(c => {
-                document.getElementById(`tab${c.charAt(0).toUpperCase() + c.slice(1)}`).classList.add('hidden');
-                const btn = document.getElementById(`tabBtn${c.charAt(0).toUpperCase() + c.slice(1)}`);
-                btn.className = "px-3 py-1.5 text-slate-400 border-b-2 border-transparent hover:text-white";
-            });
+        function capitalizar(s) {
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
 
-            const activeBtn = document.getElementById(`tabBtn${cloud.charAt(0).toUpperCase() + cloud.slice(1)}`);
-            const activeTab = document.getElementById(`tab${cloud.charAt(0).toUpperCase() + cloud.slice(1)}`);
-            
-            activeTab.classList.remove('hidden');
-            if(cloud === 'aws') activeBtn.className = "px-3 py-1.5 text-amber-400 border-b-2 border-amber-400";
-            if(cloud === 'azure') activeBtn.className = "px-3 py-1.5 text-sky-400 border-b-2 border-sky-400";
-            if(cloud === 'gcp') activeBtn.className = "px-3 py-1.5 text-indigo-400 border-b-2 border-indigo-400";
+        function switchTab(cloud) {
+            const ativos = {
+                aws: 'text-amber-400 border-amber-400',
+                azure: 'text-sky-400 border-sky-400',
+                gcp: 'text-indigo-400 border-indigo-400'
+            };
+            Object.keys(ativos).forEach(c => {
+                document.getElementById(`tab${capitalizar(c)}`).classList.toggle('hidden', c !== cloud);
+                document.getElementById(`tabBtn${capitalizar(c)}`).className = c === cloud
+                    ? `px-3 py-1.5 border-b-2 ${ativos[c]}`
+                    : 'px-3 py-1.5 text-slate-400 border-b-2 border-transparent hover:text-white';
+            });
         }
 
         const TIMEOUT_MS = 4000; // tempo limite por chamada (planejamento: 4 s)
@@ -575,72 +716,6 @@
             } finally {
                 clearTimeout(id);
             }
-        }
-
-        // AWS Lambda local calculation
-        function calcAWSLocal(pInicial, pMensal, taxaJurosMensal, meses) {
-            // Mesma fórmula da Lambda: aporte mensal no fim de cada mês
-            let totalInvestido = pInicial + (pMensal * meses);
-            let i = taxaJurosMensal / 100;
-            let saldo = pInicial;
-            let historico = [pInicial];
-            for (let m = 1; m <= meses; m++) {
-                saldo = saldo * (1 + i) + pMensal;
-                historico.push(Math.round(saldo * 100) / 100);
-            }
-            let montanteBruto = saldo;
-
-            let rendimentos = montanteBruto - totalInvestido;
-
-            return {
-                status: 'success',
-                provider: 'AWS Lambda (us-east-1)',
-                data: {
-                    montanteBruto: Math.round(montanteBruto * 100) / 100,
-                    totalInvestido: Math.round(totalInvestido * 100) / 100,
-                    totalRendimentos: Math.round(rendimentos * 100) / 100,
-                    historicoEvolucao: historico
-                }
-            };
-        }
-
-        // Azure Functions local conversion
-        function calcAzureLocal(montanteBRL) {
-            const taxaUSD = 5.60;
-            const taxaEUR = 6.10;
-
-            return {
-                status: 'success',
-                provider: 'Azure Functions (brazilsouth)',
-                data: {
-                    valorBRL: montanteBRL,
-                    valorUSD: Math.round((montanteBRL / taxaUSD) * 100) / 100,
-                    valorEUR: Math.round((montanteBRL / taxaEUR) * 100) / 100,
-                    cotacaoUSD: taxaUSD,
-                    cotacaoEUR: taxaEUR
-                }
-            };
-        }
-
-        // GCP Cloud Functions local inflation calculation
-        function calcGCPLocal(montanteBruto, totalInvestido, taxaInflacaoAnual, meses) {
-            let inflacaoMensal = Math.pow(1 + (taxaInflacaoAnual / 100), 1/12) - 1;
-            let fatorInflacao = Math.pow(1 + inflacaoMensal, meses);
-            
-            let montanteReal = montanteBruto / fatorInflacao;
-            let perdaPoderCompra = montanteBruto - montanteReal;
-            let ganhoRealLiquido = montanteReal - totalInvestido;
-
-            return {
-                status: 'success',
-                provider: 'Google Cloud Functions (us-central1)',
-                data: {
-                    montanteReal: Math.round(montanteReal * 100) / 100,
-                    perdaPoderCompra: Math.round(perdaPoderCompra * 100) / 100,
-                    ganhoRealLiquido: Math.round(ganhoRealLiquido * 100) / 100,
-                    taxaInflacaoAcumulada: Math.round((fatorInflacao - 1) * 10000) / 100
-                }
-            };
         }
 
         // ===== Orquestração: AWS primeiro (cascata), depois Azure + GCP em paralelo =====
@@ -668,12 +743,18 @@
             };
         }
 
-        // Chama uma nuvem. Qualquer falha (HTTP != 2xx, timeout, rede, CORS) vira cálculo local marcado como fallback.
+        /**
+         * Chama uma nuvem e devolve { result, lat, httpStatus }.
+         * result.status: 'success' (nuvem respondeu) | 'fallback' (cálculo local) | 'error' (400, sem fallback)
+         * Falhas (HTTP 5xx/403, timeout, rede, CORS, URL vazia) viram cálculo local marcado como fallback.
+         * Erro 400 (entrada inválida) não: recalcular localmente com os mesmos dados esconderia o problema.
+         */
         async function chamarNuvem({ nome, url, body, simularFalha, enviarRequestIdHeader, requestId, calcLocal }) {
             callCount[nome]++;
             const t0 = performance.now();
             let result;
             let httpStatus = null;
+            const local = (erro) => ({ status: 'fallback', provider: 'Navegador (cálculo local)', error: erro, data: calcLocal() });
 
             if (executionMode === 'real' && url) {
                 try {
@@ -682,20 +763,29 @@
                     if (enviarRequestIdHeader) headers['X-Request-Id'] = requestId;
                     const res = await fetchWithTimeout(alvo, { method: 'POST', headers, body: JSON.stringify(body) });
                     httpStatus = res.status;
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    result = await res.json();
-                    if (!result || !result.data) throw new Error('Resposta sem o campo data');
+                    const corpo = await res.json().catch(() => null);
+                    if (res.status === 400) {
+                        result = { ...(corpo || {}), status: 'error' };
+                    } else if (!res.ok) {
+                        throw Object.assign(new Error(`HTTP ${res.status}`), { corpo });
+                    } else if (!corpo || !corpo.data) {
+                        throw new Error('Resposta sem o campo data');
+                    } else {
+                        result = corpo;
+                    }
                 } catch (e) {
                     console.warn(`[${nome}] fallback local:`, e.message);
-                    result = { ...calcLocal(), status: 'fallback', error: e.message };
+                    result = local(e.message);
+                    if (e.corpo) result.respostaNuvem = e.corpo;
                 }
             } else {
                 await new Promise(r => setTimeout(r, 150 + Math.random() * 250));
                 if (simularFalha) {
-                    result = { ...calcLocal(), status: 'fallback', error: 'Falha simulada no navegador (modo Mock Local)' };
+                    result = local('Falha simulada no navegador (modo Mock Local)');
+                } else if (executionMode === 'real') {
+                    result = local('URL da função não configurada');
                 } else {
-                    result = calcLocal();
-                    if (executionMode === 'real') result = { ...result, status: 'fallback', error: 'URL da função não configurada' };
+                    result = { status: 'success', provider: 'Navegador (modo Mock Local)', data: calcLocal() };
                 }
             }
 
@@ -704,9 +794,10 @@
             return { result, lat, httpStatus };
         }
 
-        async function executarAWS() {
-            const { inp, requestId } = lastRun;
-            setCardLoading('AWS');
+        // Cada etapa guarda a simulação em que começou; se outra começar no meio, a resposta antiga é descartada
+        async function executarAWS(run) {
+            const { inp, requestId } = run;
+            setCardLoading('aws');
             const r = await chamarNuvem({
                 nome: 'aws',
                 url: endpoints.aws,
@@ -716,16 +807,18 @@
                 requestId,
                 calcLocal: () => calcAWSLocal(inp.aporteInicial, inp.aporteMensal, inp.taxaJurosMensal, inp.tempoMeses)
             });
-            updateAwsUI(r.result, r.lat);
-            marcarEstado('AWS', r);
-            lastRun.awsResult = r.result;
-            lastRun.montanteBruto = r.result.data.montanteBruto;
-            lastRun.totalInvestido = r.result.data.totalInvestido;
+            if (run !== lastRun) return;
+            atualizarCard('aws', r);
+            run.awsResult = r.result;
+            if (r.result.data) {
+                run.montanteBruto = r.result.data.montanteBruto;
+                run.totalInvestido = r.result.data.totalInvestido;
+            }
         }
 
-        async function executarAzure() {
-            const { montanteBruto, requestId } = lastRun;
-            setCardLoading('Azure');
+        async function executarAzure(run) {
+            const { montanteBruto, requestId } = run;
+            setCardLoading('azure');
             const r = await chamarNuvem({
                 nome: 'azure',
                 url: endpoints.azure,
@@ -735,13 +828,13 @@
                 requestId,
                 calcLocal: () => calcAzureLocal(montanteBruto)
             });
-            updateAzureUI(r.result, r.lat);
-            marcarEstado('Azure', r);
+            if (run !== lastRun) return;
+            atualizarCard('azure', r);
         }
 
-        async function executarGCP() {
-            const { inp, montanteBruto, totalInvestido, requestId } = lastRun;
-            setCardLoading('GCP');
+        async function executarGCP(run) {
+            const { inp, montanteBruto, totalInvestido, requestId } = run;
+            setCardLoading('gcp');
             const r = await chamarNuvem({
                 nome: 'gcp',
                 url: endpoints.gcp,
@@ -751,53 +844,126 @@
                 requestId,
                 calcLocal: () => calcGCPLocal(montanteBruto, totalInvestido, inp.taxaInflacao, inp.tempoMeses)
             });
-            updateGcpUI(r.result, r.lat);
-            marcarEstado('GCP', r);
-            lastRun.gcpResult = r.result;
+            if (run !== lastRun) return;
+            atualizarCard('gcp', r);
+            run.gcpResult = r.result;
         }
 
-        function atualizarGrafico() {
-            const { inp, awsResult, gcpResult } = lastRun;
-            updateChartData(awsResult, gcpResult, inp.aporteInicial, inp.aporteMensal, inp.tempoMeses, inp.taxaInflacao);
+        function atualizarGrafico(run) {
+            if (run !== lastRun) return;
+            updateChartData(run.awsResult, run.gcpResult, run.inp);
+        }
+
+        // Sem montante da AWS (erro 400), Azure e GCP não têm o que calcular
+        function marcarDependencia() {
+            const r = {
+                result: { status: 'error', erro: 'DEPENDENCIA', mensagem: 'Montante da AWS indisponível (verifique os parâmetros)' },
+                lat: 0,
+                httpStatus: null
+            };
+            atualizarCard('azure', r);
+            atualizarCard('gcp', r);
+        }
+
+        function setBotaoExecutando(executando) {
+            const btn = document.getElementById('btnRun');
+            btn.disabled = executando;
+            btn.classList.toggle('opacity-60', executando);
+            btn.classList.toggle('cursor-wait', executando);
         }
 
         // Main Execution Orchestrator
         async function runMulticloudSimulation() {
-            lastRun = { inp: lerEntradas(), requestId: novoRequestId() };
-            document.getElementById('lastRequestId').innerText = lastRun.requestId;
-            setCardLoading('Azure');
-            setCardLoading('GCP');
+            const run = { inp: lerEntradas(), requestId: novoRequestId() };
+            lastRun = run;
+            document.getElementById('lastRequestId').innerText = run.requestId;
+            setBotaoExecutando(true);
+            setCardLoading('azure');
+            setCardLoading('gcp');
 
-            // 1) Cascata: a AWS calcula o montante que alimenta Azure e GCP
-            await executarAWS();
+            try {
+                // 1) Cascata: a AWS calcula o montante que alimenta Azure e GCP
+                await executarAWS(run);
+                if (run !== lastRun) return;
 
-            // 2) Paralelo: Azure e GCP ao mesmo tempo, uma não espera a outra
-            await Promise.allSettled([executarAzure(), executarGCP()]);
-
-            atualizarGrafico();
+                if (run.montanteBruto === undefined) {
+                    marcarDependencia();
+                } else {
+                    // 2) Paralelo: Azure e GCP ao mesmo tempo, uma não espera a outra
+                    await Promise.allSettled([executarAzure(run), executarGCP(run)]);
+                }
+                atualizarGrafico(run);
+            } finally {
+                if (run === lastRun) setBotaoExecutando(false);
+            }
         }
 
         // "Tentar de novo": refaz só a chamada que falhou (a AWS refaz a simulação, pois alimenta as outras)
         async function tentarDeNovo(nuvem) {
-            if (!lastRun || nuvem === 'aws') return runMulticloudSimulation();
-            if (nuvem === 'azure') return executarAzure();
-            await executarGCP();
-            atualizarGrafico();
+            const run = lastRun;
+            if (!run || nuvem === 'aws' || run.montanteBruto === undefined) return runMulticloudSimulation();
+            if (nuvem === 'azure') return executarAzure(run);
+            await executarGCP(run);
+            atualizarGrafico(run);
         }
 
-        // Mostra/esconde o aviso de indisponibilidade e o botão "Tentar de novo" de cada card
-        function marcarEstado(sufixo, r) {
-            const degradado = r.result.status === 'fallback';
-            document.getElementById(`warn${sufixo}`).classList.toggle('hidden', !degradado);
-            document.getElementById(`retry${sufixo}`).classList.toggle('hidden', !degradado);
-            const statusDisp = document.getElementById(`${sufixo.toLowerCase()}StatusDisplay`);
-            if (degradado) {
-                statusDisp.innerText = `Fallback local · ${r.result.error}`;
-                statusDisp.className = 'text-amber-400 font-bold';
+        function setCardLoading(cloud) {
+            const badge = document.getElementById(`badge${NUVENS[cloud].id}`);
+            badge.className = BADGE_BASE + ESTILOS.carregando;
+            badge.innerText = 'Processando...';
+        }
+
+        // Cold/warm: usa o que a própria função informa (coldStart); sem essa informação, 1ª chamada da aba = cold
+        function tipoInicio(nome, result) {
+            if (typeof result.coldStart === 'boolean') return result.coldStart ? 'cold' : 'warm';
+            return callCount[nome] === 1 ? 'cold' : 'warm';
+        }
+
+        function descreverStatus(r) {
+            const textos = { 200: 'OK', 400: 'Bad Request', 403: 'Forbidden', 500: 'Internal Error', 502: 'Bad Gateway', 503: 'Unavailable', 504: 'Timeout' };
+            if (r.result.status === 'fallback') return `Fallback local · ${r.result.error}`;
+            if (r.httpStatus) return `HTTP ${r.httpStatus} ${textos[r.httpStatus] || ''}`.trim();
+            return r.result.erro === 'DEPENDENCIA' ? 'Não executada' : 'Sem requisição HTTP';
+        }
+
+        // Atualizador genérico: badge, valores, aviso, "Tentar de novo", status HTTP e inspetor JSON
+        function atualizarCard(cloud, r) {
+            const cfg = NUVENS[cloud];
+            const res = r.result;
+            const degradado = res.status === 'fallback';
+            const erro = res.status === 'error';
+
+            document.getElementById(`lat${cfg.id}`).innerHTML =
+                `<i data-lucide="clock" class="w-3 h-3"></i> ${Number(r.lat) || 0} ms`;
+            setText(`type${cfg.id}`, erro || degradado
+                ? (erro ? cfg.id : 'Local')
+                : res.provider && res.provider.startsWith('Navegador') ? 'Mock' : `${capitalizar(tipoInicio(cloud, res))} Start`);
+
+            const badge = document.getElementById(`badge${cfg.id}`);
+            if (erro) {
+                badge.className = BADGE_BASE + ESTILOS.erro;
+                badge.innerText = r.httpStatus === 400 ? '400 Inválido' : 'Indisponível';
+            } else if (degradado) {
+                badge.className = BADGE_BASE + ESTILOS.fallback;
+                badge.innerText = 'Fallback local';
             } else {
-                statusDisp.innerText = `HTTP ${r.httpStatus || 200} OK`;
-                statusDisp.className = 'text-emerald-400 font-bold';
+                badge.className = BADGE_BASE + ESTILOS.ok;
+                badge.innerText = r.httpStatus ? `${r.httpStatus} OK` : 'Mock OK';
             }
+
+            if (!erro && res.data) cfg.preencher(res.data); else cfg.limpar();
+            document.getElementById(`card${cfg.id}`).className = CARD_BASE +
+                (erro ? 'border-rose-500/30' : degradado ? 'border-amber-500/40' : cfg.bordaOk);
+
+            document.getElementById(`warn${cfg.id}`).classList.toggle('hidden', !degradado);
+            document.getElementById(`retry${cfg.id}`).classList.toggle('hidden', !degradado && !erro);
+
+            const statusDisp = document.getElementById(`${cloud}StatusDisplay`);
+            statusDisp.innerText = descreverStatus(r);
+            statusDisp.className = 'font-bold ' + (erro ? 'text-rose-400' : degradado ? 'text-amber-400' : 'text-emerald-400');
+
+            document.getElementById(`${cloud}JsonDisplay`).innerText = JSON.stringify(res, null, 2);
+            lucide.createIcons();
         }
 
         // ===== Painel de métricas (latência, cold/warm) + exportação CSV =====
@@ -806,12 +972,12 @@
                 hora: new Date().toLocaleTimeString('pt-BR'),
                 requestId,
                 nuvem: { aws: 'AWS', azure: 'Azure', gcp: 'GCP' }[nome],
-                resultado: result.status === 'fallback' ? 'fallback' : 'ok',
+                resultado: result.status === 'fallback' ? 'fallback' : result.status === 'error' ? 'erro' : 'ok',
                 http: httpStatus ?? '',
                 latenciaMs: lat,
-                inicio: callCount[nome] === 1 ? 'cold' : 'warm',
+                inicio: tipoInicio(nome, result),
                 modo: executionMode,
-                erro: result.error || ''
+                erro: result.error || result.erro || ''
             });
             renderMetricas();
         }
@@ -820,17 +986,23 @@
             return lista.length ? Math.round(lista.reduce((s, v) => s + v, 0) / lista.length) : null;
         }
 
+        function escaparHTML(v) {
+            return String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
         function renderMetricas() {
             const corpo = document.getElementById('metricsBody');
             if (!corpo) return;
+            const cor = { ok: 'text-emerald-400', fallback: 'text-amber-400', erro: 'text-rose-400' };
+            const rotulo = { ok: 'OK', fallback: 'Fallback', erro: 'Erro' };
             corpo.innerHTML = metrics.slice(0, 30).map(m => `
                 <tr class="border-t border-slate-800/60">
-                    <td class="py-1 pr-2 text-slate-500">${m.hora}</td>
+                    <td class="py-1 pr-2 text-slate-500">${escaparHTML(m.hora)}</td>
                     <td class="py-1 pr-2">${m.nuvem}</td>
-                    <td class="py-1 pr-2 ${m.resultado === 'ok' ? 'text-emerald-400' : 'text-amber-400'}">${m.resultado === 'ok' ? 'OK' : 'Fallback'}${m.http ? ` (${m.http})` : ''}</td>
+                    <td class="py-1 pr-2 ${cor[m.resultado]}">${rotulo[m.resultado]}${m.http ? ` (${escaparHTML(m.http)})` : ''}</td>
                     <td class="py-1 pr-2 text-right">${m.latenciaMs} ms</td>
                     <td class="py-1 pr-2 uppercase text-[10px]">${m.inicio}</td>
-                    <td class="py-1 text-slate-500">${m.requestId}</td>
+                    <td class="py-1 text-slate-500">${escaparHTML(m.requestId)}</td>
                 </tr>`).join('') || '<tr><td colspan="6" class="py-2 text-slate-500">Nenhuma chamada ainda.</td></tr>';
 
             // Médias só das respostas reais da nuvem (sem fallback)
@@ -861,136 +1033,6 @@
             renderMetricas();
         }
 
-        // Card Reset State
-        function setCardLoading(cloud) {
-            document.getElementById(`badge${cloud}`).className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse";
-            document.getElementById(`badge${cloud}`).innerText = "Processando...";
-        }
-
-        // AWS UI Updater
-        function updateAwsUI(res, lat) {
-            const badge = document.getElementById('badgeAWS');
-            const card = document.getElementById('cardAWS');
-            const jsonDisp = document.getElementById('awsJsonDisplay');
-            const statusDisp = document.getElementById('awsStatusDisplay');
-            const latDisp = document.getElementById('latAWS');
-            const typeDisp = document.getElementById('typeAWS');
-
-            latDisp.innerHTML = `<i data-lucide="clock" class="w-3 h-3"></i> ${lat} ms`;
-            typeDisp.innerText = callCount.aws === 1 ? 'Cold Start' : 'Warm Start';
-
-            if (res && res.status !== 'error') {
-                badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-                badge.innerText = res.status === 'fallback' ? 'Fallback local' : '200 OK';
-                if (res.status === 'fallback') badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20";
-                card.className = "bg-slate-900 border border-amber-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
-
-                document.getElementById('valMontanteBruto').innerText = formatBRL(res.data.montanteBruto);
-                document.getElementById('valTotalInvestido').innerText = formatBRL(res.data.totalInvestido);
-                document.getElementById('valLucroBruto').innerText = formatBRL(res.data.totalRendimentos);
-
-                statusDisp.innerText = "HTTP 200 OK";
-                statusDisp.className = "text-emerald-400 font-bold";
-                jsonDisp.innerText = JSON.stringify(res, null, 2);
-            } else {
-                badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20";
-                badge.innerText = "Indisponível";
-                card.className = "bg-slate-900 border border-rose-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
-
-                document.getElementById('valMontanteBruto').innerText = "Serviço Temporariamente Indisponível";
-                document.getElementById('valTotalInvestido').innerText = "R$ --";
-                document.getElementById('valLucroBruto').innerText = "R$ --";
-
-                statusDisp.innerText = "HTTP 500 Error";
-                statusDisp.className = "text-rose-400 font-bold";
-                jsonDisp.innerText = JSON.stringify(res || { error: 'Unknown Error' }, null, 2);
-            }
-            lucide.createIcons();
-        }
-
-        // Azure UI Updater
-        function updateAzureUI(res, lat) {
-            const badge = document.getElementById('badgeAzure');
-            const card = document.getElementById('cardAzure');
-            const jsonDisp = document.getElementById('azureJsonDisplay');
-            const statusDisp = document.getElementById('azureStatusDisplay');
-            const latDisp = document.getElementById('latAzure');
-            const typeDisp = document.getElementById('typeAzure');
-
-            latDisp.innerHTML = `<i data-lucide="clock" class="w-3 h-3"></i> ${lat} ms`;
-            typeDisp.innerText = callCount.azure === 1 ? 'Cold Start' : 'Warm Start';
-
-            if (res && res.status !== 'error') {
-                badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-                badge.innerText = res.status === 'fallback' ? 'Fallback local' : '200 OK';
-                if (res.status === 'fallback') badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20";
-                card.className = "bg-slate-900 border border-sky-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
-
-                document.getElementById('valUSD').innerText = formatUSD(res.data.valorUSD);
-                document.getElementById('valEUR').innerText = formatEUR(res.data.valorEUR);
-                document.getElementById('valCambio').innerText = `1 USD = R$ ${res.data.cotacaoUSD.toFixed(2)}`;
-
-                statusDisp.innerText = "HTTP 200 OK";
-                statusDisp.className = "text-emerald-400 font-bold";
-                jsonDisp.innerText = JSON.stringify(res, null, 2);
-            } else {
-                badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20";
-                badge.innerText = "Indisponível";
-                card.className = "bg-slate-900 border border-rose-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
-
-                document.getElementById('valUSD').innerText = "Serviço Temporariamente Indisponível";
-                document.getElementById('valEUR').innerText = "€ --";
-                document.getElementById('valCambio').innerText = "--";
-
-                statusDisp.innerText = "HTTP 503 Error";
-                statusDisp.className = "text-rose-400 font-bold";
-                jsonDisp.innerText = JSON.stringify(res || { error: 'Unknown Error' }, null, 2);
-            }
-            lucide.createIcons();
-        }
-
-        // GCP UI Updater
-        function updateGcpUI(res, lat) {
-            const badge = document.getElementById('badgeGCP');
-            const card = document.getElementById('cardGCP');
-            const jsonDisp = document.getElementById('gcpJsonDisplay');
-            const statusDisp = document.getElementById('gcpStatusDisplay');
-            const latDisp = document.getElementById('latGCP');
-            const typeDisp = document.getElementById('typeGCP');
-
-            latDisp.innerHTML = `<i data-lucide="clock" class="w-3 h-3"></i> ${lat} ms`;
-            typeDisp.innerText = callCount.gcp === 1 ? 'Cold Start' : 'Warm Start';
-
-            if (res && res.status !== 'error') {
-                badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-                badge.innerText = res.status === 'fallback' ? 'Fallback local' : '200 OK';
-                if (res.status === 'fallback') badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20";
-                card.className = "bg-slate-900 border border-indigo-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
-
-                document.getElementById('valMontanteReal').innerText = formatBRL(res.data.montanteReal);
-                document.getElementById('valPerdaInflacao').innerText = formatBRL(res.data.perdaPoderCompra);
-                document.getElementById('valLucroReal').innerText = formatBRL(res.data.ganhoRealLiquido);
-
-                statusDisp.innerText = "HTTP 200 OK";
-                statusDisp.className = "text-emerald-400 font-bold";
-                jsonDisp.innerText = JSON.stringify(res, null, 2);
-            } else {
-                badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20";
-                badge.innerText = "Indisponível";
-                card.className = "bg-slate-900 border border-rose-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
-
-                document.getElementById('valMontanteReal').innerText = "Serviço Temporariamente Indisponível";
-                document.getElementById('valPerdaInflacao').innerText = "R$ --";
-                document.getElementById('valLucroReal').innerText = "R$ --";
-
-                statusDisp.innerText = "HTTP 504 Timeout";
-                statusDisp.className = "text-rose-400 font-bold";
-                jsonDisp.innerText = JSON.stringify(res || { error: 'Unknown Error' }, null, 2);
-            }
-            lucide.createIcons();
-        }
-
-        // Chart Initialization
         function initChart() {
             const ctx = document.getElementById('projectionChart').getContext('2d');
             chartInstance = new Chart(ctx, {
@@ -1008,7 +1050,7 @@
                             borderWidth: 2
                         },
                         {
-                            label: 'Valor Corrigido IPCA (GCP)',
+                            label: 'Valor Corrigido IPCA',
                             data: [],
                             borderColor: '#34A853',
                             backgroundColor: 'transparent',
@@ -1031,7 +1073,8 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 11 } }
                         },
                         tooltip: {
                             mode: 'index',
@@ -1053,11 +1096,11 @@
                         },
                         y: {
                             grid: { color: 'rgba(51, 65, 85, 0.3)' },
-                            ticks: { 
-                                color: '#94a3b8', 
+                            ticks: {
+                                color: '#94a3b8',
                                 font: { family: 'JetBrains Mono', size: 10 },
                                 callback: function(value) {
-                                    return 'R$ ' + (value >= 1000 ? (value/1000).toFixed(0) + 'k' : value);
+                                    return 'R$ ' + (value >= 1000 ? (value / 1000).toFixed(0) + 'k' : value);
                                 }
                             }
                         }
@@ -1066,43 +1109,39 @@
             });
         }
 
-        // Update Chart Datasets
-        function updateChartData(awsRes, gcpRes, pInicial, pMensal, meses, taxaInflacaoAnual) {
+        // O gráfico usa o histórico devolvido pela AWS (ou pelo fallback). A curva IPCA aplica,
+        // mês a mês, a mesma fórmula da GCP e só aparece quando a GCP (ou seu fallback) respondeu.
+        function updateChartData(awsRes, gcpRes, inp) {
             if (!chartInstance) return;
 
-            const labels = ['Mês 0'];
-            for (let i = 1; i <= meses; i++) labels.push(`Mês ${i}`);
-
-            let dataAWS = [];
-            let dataGCP = [];
-            let dataInvestido = [];
-
-            let inflacaoMensal = Math.pow(1 + (taxaInflacaoAnual / 100), 1/12) - 1;
-
-            if (awsRes && awsRes.data && awsRes.data.historicoEvolucao) {
-                dataAWS = awsRes.data.historicoEvolucao;
-            } else {
-                let tempAcu = pInicial;
-                const i = 0.008;
-                dataAWS = [pInicial];
-                for (let m = 1; m <= meses; m++) {
-                    tempAcu = (tempAcu + pMensal) * (1 + i);
-                    dataAWS.push(Math.round(tempAcu));
-                }
+            const historico = awsRes && awsRes.status !== 'error' && awsRes.data && awsRes.data.historicoEvolucao;
+            if (!historico) {
+                chartInstance.data.labels = [];
+                chartInstance.data.datasets.forEach(ds => { ds.data = []; });
+                chartInstance.update();
+                return;
             }
 
+            const meses = historico.length - 1;
+            const labels = [];
+            const dataInvestido = [];
+            const dataIPCA = [];
+            const gcpOk = gcpRes && gcpRes.status !== 'error' && gcpRes.data;
+            const inflacaoMensal = Math.pow(1 + (inp.taxaInflacao / 100), 1 / 12) - 1;
+
             for (let m = 0; m <= meses; m++) {
-                dataInvestido.push(pInicial + (pMensal * m));
-                let fator = Math.pow(1 + inflacaoMensal, m);
-                dataGCP.push(Math.round(dataAWS[m] / fator));
+                labels.push(`Mês ${m}`);
+                dataInvestido.push(arredondar(inp.aporteInicial + inp.aporteMensal * m));
+                if (gcpOk) dataIPCA.push(arredondar(historico[m] / Math.pow(1 + inflacaoMensal, m)));
             }
 
             chartInstance.data.labels = labels;
-            chartInstance.data.datasets[0].data = dataAWS;
-            chartInstance.data.datasets[1].data = dataGCP;
+            chartInstance.data.datasets[0].data = historico;
+            chartInstance.data.datasets[1].data = dataIPCA;
             chartInstance.data.datasets[2].data = dataInvestido;
             chartInstance.update();
         }
     </script>
 </body>
+
 </html>

@@ -36,13 +36,51 @@ export function validar(body) {
     return { detalhes, montanteBRL, moedas, modo };
 }
 
-// Tenta as APIs públicas em ordem; devolve { cotacoes, fonte } ou null se nenhuma responder.
-export async function buscarCotacoes(moedas) {
-    const awesome = await buscarAwesomeApi(moedas);
-    if (awesome) return { cotacoes: awesome, fonte: 'awesomeapi' };
-    const reserva = await buscarExchangeRateApi(moedas);
-    if (reserva) return { cotacoes: reserva, fonte: 'exchangerate-api' };
-    return null;
+// Cache em memória da instância: evita uma ida às APIs a cada requisição (e o 429 por excesso de chamadas).
+// A ExchangeRate-API só atualiza 1x por dia, então 5 minutos não perdem nada de precisão.
+export const CACHE_TTL_MS = 5 * 60 * 1000;
+let cache = null;          // { cotacoes: { USD, EUR }, fonte, obtidoEm }
+let emAndamento = null;    // consulta em curso, compartilhada por requisições simultâneas
+
+export function limparCacheCotacoes() {
+    cache = null;
+    emAndamento = null;
+}
+
+const selecionar = (cotacoes, moedas) => Object.fromEntries(moedas.map(m => [m, cotacoes[m]]));
+
+// Consulta as duas APIs públicas AO MESMO TEMPO e fica com a primeira que responder com dados válidos.
+// Pior caso: ~1,5 s (um timeout), em vez de 3 s consultando uma depois da outra.
+async function consultarApis() {
+    const tentar = (buscar, fonte) => buscar(MOEDAS_ACEITAS).then(cotacoes => {
+        if (!cotacoes) throw new Error(`${fonte} indisponível`);
+        return { cotacoes, fonte };
+    });
+    try {
+        return await Promise.any([
+            tentar(buscarAwesomeApi, 'awesomeapi'),
+            tentar(buscarExchangeRateApi, 'exchangerate-api')
+        ]);
+    } catch {
+        return null; // as duas falharam
+    }
+}
+
+// Devolve { cotacoes, fonte, emCache } ou null se nenhuma API responder.
+export async function buscarCotacoes(moedas, agora = Date.now()) {
+    if (cache && agora - cache.obtidoEm < CACHE_TTL_MS) {
+        return { cotacoes: selecionar(cache.cotacoes, moedas), fonte: cache.fonte, emCache: true };
+    }
+
+    if (!emAndamento) {
+        emAndamento = consultarApis().then(resultado => {
+            if (resultado) cache = { ...resultado, obtidoEm: agora };
+            return resultado;
+        }).finally(() => { emAndamento = null; });
+    }
+
+    const resultado = await emAndamento;
+    return resultado ? { cotacoes: selecionar(resultado.cotacoes, moedas), fonte: resultado.fonte, emCache: false } : null;
 }
 
 // ExchangeRate-API (open access): taxas a partir do BRL; a cotação em reais é 1 / taxa.

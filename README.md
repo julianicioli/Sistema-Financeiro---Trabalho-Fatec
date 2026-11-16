@@ -20,7 +20,7 @@ Funções (todas recebem `POST` com JSON):
 | Nuvem | Função | URL |
 |---|---|---|
 | AWS Lambda | Juros compostos | https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/ |
-| Azure Functions | Conversão de câmbio (BRL para USD e EUR) | https://cambio-grupoa-fatec-aae6fbfdcnhrcnay.canadacentral-01.azurewebsites.net/api/cambio |
+| Azure Functions | Conversão de câmbio (BRL para USD e EUR) | https://conversorlegal-adfuh2h0fdf0ajdx.canadacentral-01.azurewebsites.net/api/cambio |
 | Google Cloud | Inflação e poder de compra (IPCA) | https://inflacao-20304353773.us-central1.run.app |
 
 ## Como funciona
@@ -60,6 +60,17 @@ cd frontend-app
 npx http-server -p 5173
 ```
 
+## Testes automatizados
+
+```bash
+npm install
+npm install --prefix google-functions
+npm install --prefix azure-functions
+npm test
+```
+
+Os testes rodam as três funções localmente (cálculo, erros 400 e 500, CORS), conferem se o cálculo de reserva do site dá o mesmo resultado das funções e abrem o site num navegador simulado para testar a cascata, o fallback e o painel de métricas.
+
 ## Estrutura
 
 ```
@@ -68,4 +79,5 @@ azure-functions/   função da Azure
 google-functions/  função do Google Cloud
 frontend-app/      site (index.html)
 docs/              documento técnico
+tests/             testes automatizados
 ```

@@ -8,11 +8,16 @@ const CORS = {
     'Access-Control-Allow-Methods': 'OPTIONS,POST'
 };
 
+// Fica true só na primeira invocação de cada instância (cold start real)
+let coldStart = true;
+
 app.http('cambio', {
     methods: ['POST', 'OPTIONS'],
     authLevel: 'anonymous',
     route: 'cambio',
     handler: async (request, context) => {
+        const eraColdStart = coldStart;
+        coldStart = false;
         const requestId = request.headers.get('x-request-id');
 
         if (request.method === 'OPTIONS') {
@@ -40,6 +45,7 @@ app.http('cambio', {
                 regiao: process.env.REGION_NAME || 'Azure'
             });
             context.log(`[cambio] requestId=${requestId} status=${resultado.status}`);
+            if (resultado.status === 200) resultado.body.coldStart = eraColdStart;
             return { status: resultado.status, headers: CORS, jsonBody: resultado.body };
         } catch (error) {
             context.error(`[cambio] requestId=${requestId}`, error);

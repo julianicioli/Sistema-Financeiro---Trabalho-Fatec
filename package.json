@@ -1,0 +1,11 @@
+{
+  "name": "sistema-financeiro-multicloud",
+  "private": true,
+  "description": "Testes do SaaS Financeiro Multicloud (Grupo A - Fatec Itapira)",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  }
+}
