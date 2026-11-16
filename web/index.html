@@ -456,7 +456,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-amber-400 mb-1">AWS Lambda Function URL / API Gateway</label>
-                    <input type="url" id="endpointAWS" value="https://najxnjvcad46j3eoua4nkqlauy0xovyy.lambda-url.sa-east-1.on.aws/" placeholder="https://abc.execute-api.us-east-1.amazonaws.com/prod/calc" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-amber-500 focus:outline-none">
+                    <input type="url" id="endpointAWS" value="https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/" placeholder="https://abc.execute-api.us-east-1.amazonaws.com/prod/calc" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-amber-500 focus:outline-none">
                 </div>
 
                 <div>
@@ -487,7 +487,7 @@
         let chartInstance = null;
 
         let endpoints = {
-            aws: 'https://najxnjvcad46j3eoua4nkqlauy0xovyy.lambda-url.sa-east-1.on.aws/',
+            aws: 'https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/',
             azure: 'https://cambio-grupoa-fatec-aae6fbfdcnhrcnay.canadacentral-01.azurewebsites.net/api/cambio',
             gcp: 'https://inflacao-20304353773.us-central1.run.app'
         };
@@ -579,21 +579,16 @@
 
         // AWS Lambda local calculation
         function calcAWSLocal(pInicial, pMensal, taxaJurosMensal, meses) {
+            // Mesma fórmula da Lambda: aporte mensal no fim de cada mês
             let totalInvestido = pInicial + (pMensal * meses);
             let i = taxaJurosMensal / 100;
-            let montanteBruto = pInicial * Math.pow(1 + i, meses);
-            
+            let saldo = pInicial;
             let historico = [pInicial];
-
             for (let m = 1; m <= meses; m++) {
-                montanteBruto += pMensal * Math.pow(1 + i, meses - m);
+                saldo = saldo * (1 + i) + pMensal;
+                historico.push(Math.round(saldo * 100) / 100);
             }
-
-            let acumulado = pInicial;
-            for (let m = 1; m <= meses; m++) {
-                acumulado = (acumulado + pMensal) * (1 + i);
-                historico.push(Math.round(acumulado * 100) / 100);
-            }
+            let montanteBruto = saldo;
 
             let rendimentos = montanteBruto - totalInvestido;
 
@@ -715,10 +710,9 @@
             const r = await chamarNuvem({
                 nome: 'aws',
                 url: endpoints.aws,
-                // A Function URL da AWS só libera o header Content-Type; o requestId vai no corpo.
-                body: { aporteInicial: inp.aporteInicial, aporteMensal: inp.aporteMensal, taxaJuros: inp.taxaJurosMensal, tempoMeses: inp.tempoMeses, requestId },
+                body: { aporteInicial: inp.aporteInicial, aporteMensal: inp.aporteMensal, taxaJuros: inp.taxaJurosMensal, tempoMeses: inp.tempoMeses },
                 simularFalha: document.getElementById('failAWS').checked,
-                enviarRequestIdHeader: false,
+                enviarRequestIdHeader: true,
                 requestId,
                 calcLocal: () => calcAWSLocal(inp.aporteInicial, inp.aporteMensal, inp.taxaJurosMensal, inp.tempoMeses)
             });
