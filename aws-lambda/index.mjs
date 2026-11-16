@@ -3,10 +3,9 @@
 // 200 = sucesso | 400 = parâmetros inválidos | 500 = falha interna (?simularErro=true força)
 // Aporte mensal no fim de cada mês: M = P(1+i)^n + A[(1+i)^n - 1] / i
 
+// O CORS fica na configuração da Function URL (origens: domínio da Vercel e localhost; headers: content-type,
+// x-request-id). Repetir Access-Control-* aqui duplicaria os headers e o navegador bloquearia a resposta.
 const CORS = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Request-Id',
-    'Access-Control-Allow-Methods': 'OPTIONS,POST',
     'Content-Type': 'application/json'
 };
 
