@@ -161,8 +161,14 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Juros Mensal (%)</label>
-                                <input type="number" id="taxaJuros" value="0.8" step="0.01" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition font-mono">
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Taxa de Juros (%)</label>
+                                <div class="flex gap-1">
+                                    <input type="number" id="taxaJuros" value="0.8" step="0.01" min="0" max="100" required class="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition font-mono">
+                                    <select id="tipoTaxa" title="Taxa ao mês ou ao ano" class="bg-slate-950 border border-slate-800 rounded-xl px-1.5 text-xs text-slate-300 focus:outline-none focus:border-amber-500">
+                                        <option value="mensal" selected>a.m.</option>
+                                        <option value="anual">a.a.</option>
+                                    </select>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Tempo (Meses)</label>
@@ -190,25 +196,25 @@
                         <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">Apresentação</span>
                     </div>
                     <p class="text-xs text-slate-400">
-                        Marque para simular falhas intencionais nas nuvens e demonstrar o fallback isolado em tempo real:
+                        Marque e execute: a chamada vai com <code class="text-slate-300">?simularErro=true</code> e a nuvem responde erro 500 de verdade (aparece nos logs do console). Só aquele card cai para o cálculo local:
                     </p>
 
                     <div class="space-y-2 pt-1 text-xs font-medium">
                         <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 cursor-pointer hover:border-slate-700">
                             <span class="flex items-center gap-2 text-slate-300">
-                                <span class="w-2 h-2 rounded-full bg-aws"></span> Forçar Falha AWS
+                                <span class="w-2 h-2 rounded-full bg-aws"></span> Simular falha AWS
                             </span>
                             <input type="checkbox" id="failAWS" class="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-0">
                         </label>
                         <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 cursor-pointer hover:border-slate-700">
                             <span class="flex items-center gap-2 text-slate-300">
-                                <span class="w-2 h-2 rounded-full bg-azure"></span> Forçar Queda Azure
+                                <span class="w-2 h-2 rounded-full bg-azure"></span> Simular falha Azure
                             </span>
                             <input type="checkbox" id="failAzure" class="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0">
                         </label>
                         <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 cursor-pointer hover:border-slate-700">
                             <span class="flex items-center gap-2 text-slate-300">
-                                <span class="w-2 h-2 rounded-full bg-gcp-blue"></span> Forçar Timeout GCP
+                                <span class="w-2 h-2 rounded-full bg-gcp-blue"></span> Simular falha GCP
                             </span>
                             <input type="checkbox" id="failGCP" class="rounded bg-slate-900 border-slate-700 text-indigo-500 focus:ring-0">
                         </label>
@@ -241,6 +247,7 @@
                             
                             <p class="text-[11px] text-slate-400 font-medium">Juros Compostos</p>
                             <h4 id="valMontanteBruto" class="text-xl font-extrabold text-white mt-1 font-mono">R$ --</h4>
+                            <p id="warnAWS" class="hidden mt-1 text-[11px] text-amber-400">Serviço Temporariamente Indisponível · valores do cálculo local</p>
                             
                             <div class="mt-3 pt-2 border-t border-slate-800/60 text-xs space-y-1 text-slate-400">
                                 <div class="flex justify-between">
@@ -256,6 +263,7 @@
 
                         <div class="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                             <span id="latAWS" class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> -- ms</span>
+                            <button id="retryAWS" type="button" onclick="tentarDeNovo('aws')" class="hidden text-[10px] px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 font-sans">Tentar de novo</button>
                             <span id="typeAWS" class="text-[10px] uppercase">AWS</span>
                         </div>
                     </div>
@@ -278,6 +286,7 @@
 
                             <p class="text-[11px] text-slate-400 font-medium">Conversão Internacional</p>
                             <h4 id="valUSD" class="text-xl font-extrabold text-white mt-1 font-mono">$ -- USD</h4>
+                            <p id="warnAzure" class="hidden mt-1 text-[11px] text-amber-400">Serviço Temporariamente Indisponível · valores do cálculo local</p>
 
                             <div class="mt-3 pt-2 border-t border-slate-800/60 text-xs space-y-1 text-slate-400">
                                 <div class="flex justify-between">
@@ -293,6 +302,7 @@
 
                         <div class="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                             <span id="latAzure" class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> -- ms</span>
+                            <button id="retryAzure" type="button" onclick="tentarDeNovo('azure')" class="hidden text-[10px] px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-sky-300 font-sans">Tentar de novo</button>
                             <span id="typeAzure" class="text-[10px] uppercase">Azure</span>
                         </div>
                     </div>
@@ -315,6 +325,7 @@
 
                             <p class="text-[11px] text-slate-400 font-medium">Patrimônio Real (IPCA)</p>
                             <h4 id="valMontanteReal" class="text-xl font-extrabold text-white mt-1 font-mono">R$ --</h4>
+                            <p id="warnGCP" class="hidden mt-1 text-[11px] text-amber-400">Serviço Temporariamente Indisponível · valores do cálculo local</p>
 
                             <div class="mt-3 pt-2 border-t border-slate-800/60 text-xs space-y-1 text-slate-400">
                                 <div class="flex justify-between">
@@ -330,6 +341,7 @@
 
                         <div class="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                             <span id="latGCP" class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> -- ms</span>
+                            <button id="retryGCP" type="button" onclick="tentarDeNovo('gcp')" class="hidden text-[10px] px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-indigo-300 font-sans">Tentar de novo</button>
                             <span id="typeGCP" class="text-[10px] uppercase">GCP</span>
                         </div>
                     </div>
@@ -390,6 +402,30 @@
                         </div>
                         <pre id="gcpJsonDisplay" class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-[11px] font-mono text-slate-300 overflow-x-auto max-h-40">{ "message": "Aguardando execução da requisição..." }</pre>
                     </div>
+                </div>
+
+                <!-- Painel de métricas: latência por chamada, cold/warm e exportação CSV -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                            <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i> Métricas de Latência (Cold / Warm)
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="limparMetricas()" class="px-2.5 py-1 rounded-lg text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300">Limpar</button>
+                            <button type="button" onclick="exportarCSV()" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">Exportar CSV</button>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 font-mono">Última simulação · X-Request-Id: <span id="lastRequestId" class="text-slate-300">--</span></p>
+                    <div id="metricsSummary" class="text-[11px] text-slate-400 font-mono flex flex-wrap gap-y-1"></div>
+                    <div class="overflow-x-auto max-h-56">
+                        <table class="w-full text-[11px] font-mono text-slate-300">
+                            <thead class="text-slate-500 text-left">
+                                <tr><th class="pr-2 font-medium">Hora</th><th class="pr-2 font-medium">Nuvem</th><th class="pr-2 font-medium">Resultado</th><th class="pr-2 font-medium text-right">Latência</th><th class="pr-2 font-medium">Início</th><th class="font-medium">Request-Id</th></tr>
+                            </thead>
+                            <tbody id="metricsBody"></tbody>
+                        </table>
+                    </div>
+                    <p class="text-[10px] text-slate-500">"Cold" é a 1ª chamada a cada nuvem nesta aba; para medir cold start real, deixe a função parada por ~15 min antes. Médias consideram só respostas reais (sem fallback).</p>
                 </div>
 
             </div>
@@ -526,15 +562,19 @@
             if(cloud === 'gcp') activeBtn.className = "px-3 py-1.5 text-indigo-400 border-b-2 border-indigo-400";
         }
 
-        async function fetchWithTimeout(resource, options = {}, timeout = 6000) {
+        const TIMEOUT_MS = 4000; // tempo limite por chamada (planejamento: 4 s)
+
+        async function fetchWithTimeout(resource, options = {}, timeout = TIMEOUT_MS) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
-            const response = await fetch(resource, {
-                ...options,
-                signal: controller.signal
-            });
-            clearTimeout(id);
-            return response;
+            try {
+                return await fetch(resource, { ...options, signal: controller.signal });
+            } catch (e) {
+                if (e.name === 'AbortError') throw new Error(`Tempo limite de ${timeout / 1000} s excedido`);
+                throw e;
+            } finally {
+                clearTimeout(id);
+            }
         }
 
         // AWS Lambda local calculation
@@ -608,122 +648,223 @@
             };
         }
 
+        // ===== Orquestração: AWS primeiro (cascata), depois Azure + GCP em paralelo =====
+        let lastRun = null;      // última simulação: entradas, requestId e montante vindo da AWS
+        const metrics = [];      // histórico de chamadas para o painel de métricas / CSV
+
+        function novoRequestId() {
+            const base = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}${Math.random()}`;
+            return base.replace(/[^a-z0-9]/gi, '').slice(0, 12);
+        }
+
+        function lerEntradas() {
+            const taxa = parseFloat(document.getElementById('taxaJuros').value) || 0;
+            const tipoTaxa = document.getElementById('tipoTaxa').value;
+            // Taxa ao ano vira taxa equivalente ao mês: (1 + a)^(1/12) - 1
+            const taxaJurosMensal = tipoTaxa === 'anual'
+                ? Math.round((Math.pow(1 + taxa / 100, 1 / 12) - 1) * 100 * 1e6) / 1e6
+                : taxa;
+            return {
+                aporteInicial: parseFloat(document.getElementById('aporteInicial').value) || 0,
+                aporteMensal: parseFloat(document.getElementById('aporteMensal').value) || 0,
+                taxaJurosMensal,
+                tempoMeses: parseInt(document.getElementById('tempoMeses').value) || 12,
+                taxaInflacao: parseFloat(document.getElementById('taxaInflacao').value) || 0
+            };
+        }
+
+        // Chama uma nuvem. Qualquer falha (HTTP != 2xx, timeout, rede, CORS) vira cálculo local marcado como fallback.
+        async function chamarNuvem({ nome, url, body, simularFalha, enviarRequestIdHeader, requestId, calcLocal }) {
+            callCount[nome]++;
+            const t0 = performance.now();
+            let result;
+            let httpStatus = null;
+
+            if (executionMode === 'real' && url) {
+                try {
+                    const alvo = simularFalha ? `${url}${url.includes('?') ? '&' : '?'}simularErro=true` : url;
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (enviarRequestIdHeader) headers['X-Request-Id'] = requestId;
+                    const res = await fetchWithTimeout(alvo, { method: 'POST', headers, body: JSON.stringify(body) });
+                    httpStatus = res.status;
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    result = await res.json();
+                    if (!result || !result.data) throw new Error('Resposta sem o campo data');
+                } catch (e) {
+                    console.warn(`[${nome}] fallback local:`, e.message);
+                    result = { ...calcLocal(), status: 'fallback', error: e.message };
+                }
+            } else {
+                await new Promise(r => setTimeout(r, 150 + Math.random() * 250));
+                if (simularFalha) {
+                    result = { ...calcLocal(), status: 'fallback', error: 'Falha simulada no navegador (modo Mock Local)' };
+                } else {
+                    result = calcLocal();
+                    if (executionMode === 'real') result = { ...result, status: 'fallback', error: 'URL da função não configurada' };
+                }
+            }
+
+            const lat = Math.round(performance.now() - t0);
+            registrarMetrica(nome, requestId, result, httpStatus, lat);
+            return { result, lat, httpStatus };
+        }
+
+        async function executarAWS() {
+            const { inp, requestId } = lastRun;
+            setCardLoading('AWS');
+            const r = await chamarNuvem({
+                nome: 'aws',
+                url: endpoints.aws,
+                // A Function URL da AWS só libera o header Content-Type; o requestId vai no corpo.
+                body: { aporteInicial: inp.aporteInicial, aporteMensal: inp.aporteMensal, taxaJuros: inp.taxaJurosMensal, tempoMeses: inp.tempoMeses, requestId },
+                simularFalha: document.getElementById('failAWS').checked,
+                enviarRequestIdHeader: false,
+                requestId,
+                calcLocal: () => calcAWSLocal(inp.aporteInicial, inp.aporteMensal, inp.taxaJurosMensal, inp.tempoMeses)
+            });
+            updateAwsUI(r.result, r.lat);
+            marcarEstado('AWS', r);
+            lastRun.awsResult = r.result;
+            lastRun.montanteBruto = r.result.data.montanteBruto;
+            lastRun.totalInvestido = r.result.data.totalInvestido;
+        }
+
+        async function executarAzure() {
+            const { montanteBruto, requestId } = lastRun;
+            setCardLoading('Azure');
+            const r = await chamarNuvem({
+                nome: 'azure',
+                url: endpoints.azure,
+                body: { montanteBRL: montanteBruto },
+                simularFalha: document.getElementById('failAzure').checked,
+                enviarRequestIdHeader: true,
+                requestId,
+                calcLocal: () => calcAzureLocal(montanteBruto)
+            });
+            updateAzureUI(r.result, r.lat);
+            marcarEstado('Azure', r);
+        }
+
+        async function executarGCP() {
+            const { inp, montanteBruto, totalInvestido, requestId } = lastRun;
+            setCardLoading('GCP');
+            const r = await chamarNuvem({
+                nome: 'gcp',
+                url: endpoints.gcp,
+                body: { montanteBruto, totalInvestido, taxaInflacao: inp.taxaInflacao, tempoMeses: inp.tempoMeses },
+                simularFalha: document.getElementById('failGCP').checked,
+                enviarRequestIdHeader: true,
+                requestId,
+                calcLocal: () => calcGCPLocal(montanteBruto, totalInvestido, inp.taxaInflacao, inp.tempoMeses)
+            });
+            updateGcpUI(r.result, r.lat);
+            marcarEstado('GCP', r);
+            lastRun.gcpResult = r.result;
+        }
+
+        function atualizarGrafico() {
+            const { inp, awsResult, gcpResult } = lastRun;
+            updateChartData(awsResult, gcpResult, inp.aporteInicial, inp.aporteMensal, inp.tempoMeses, inp.taxaInflacao);
+        }
+
         // Main Execution Orchestrator
         async function runMulticloudSimulation() {
-            const aporteInicial = parseFloat(document.getElementById('aporteInicial').value) || 0;
-            const aporteMensal = parseFloat(document.getElementById('aporteMensal').value) || 0;
-            const taxaJuros = parseFloat(document.getElementById('taxaJuros').value) || 0;
-            const tempoMeses = parseInt(document.getElementById('tempoMeses').value) || 12;
-            const taxaInflacao = parseFloat(document.getElementById('taxaInflacao').value) || 0;
-
-            const failAWS = document.getElementById('failAWS').checked;
-            const failAzure = document.getElementById('failAzure').checked;
-            const failGCP = document.getElementById('failGCP').checked;
-
-            // Reset Card States
-            setCardLoading('AWS');
+            lastRun = { inp: lerEntradas(), requestId: novoRequestId() };
+            document.getElementById('lastRequestId').innerText = lastRun.requestId;
             setCardLoading('Azure');
             setCardLoading('GCP');
 
-            // --- FUNCTION 1: AWS LAMBDA ---
-            callCount.aws++;
-            const t0AWS = performance.now();
-            let awsResult = null;
+            // 1) Cascata: a AWS calcula o montante que alimenta Azure e GCP
+            await executarAWS();
 
-            if (failAWS) {
-                await new Promise(r => setTimeout(r, 400));
-                awsResult = { status: 'error', error: 'Simulated 500 Internal Error (Chaos Test)' };
-            } else if (executionMode === 'real' && endpoints.aws) {
-                try {
-                    const res = await fetchWithTimeout(endpoints.aws, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ aporteInicial, aporteMensal, taxaJuros, tempoMeses })
-                    });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    awsResult = await res.json();
-                } catch (e) {
-                    console.warn("AWS Fallback deployed:", e);
-                    awsResult = { ...calcAWSLocal(aporteInicial, aporteMensal, taxaJuros, tempoMeses), status: 'fallback', error: e.message };
-                }
+            // 2) Paralelo: Azure e GCP ao mesmo tempo, uma não espera a outra
+            await Promise.allSettled([executarAzure(), executarGCP()]);
+
+            atualizarGrafico();
+        }
+
+        // "Tentar de novo": refaz só a chamada que falhou (a AWS refaz a simulação, pois alimenta as outras)
+        async function tentarDeNovo(nuvem) {
+            if (!lastRun || nuvem === 'aws') return runMulticloudSimulation();
+            if (nuvem === 'azure') return executarAzure();
+            await executarGCP();
+            atualizarGrafico();
+        }
+
+        // Mostra/esconde o aviso de indisponibilidade e o botão "Tentar de novo" de cada card
+        function marcarEstado(sufixo, r) {
+            const degradado = r.result.status === 'fallback';
+            document.getElementById(`warn${sufixo}`).classList.toggle('hidden', !degradado);
+            document.getElementById(`retry${sufixo}`).classList.toggle('hidden', !degradado);
+            const statusDisp = document.getElementById(`${sufixo.toLowerCase()}StatusDisplay`);
+            if (degradado) {
+                statusDisp.innerText = `Fallback local · ${r.result.error}`;
+                statusDisp.className = 'text-amber-400 font-bold';
             } else {
-                await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
-                awsResult = calcAWSLocal(aporteInicial, aporteMensal, taxaJuros, tempoMeses);
-                if (executionMode === 'real') awsResult = { ...awsResult, status: 'fallback', error: 'URL da AWS não configurada' };
+                statusDisp.innerText = `HTTP ${r.httpStatus || 200} OK`;
+                statusDisp.className = 'text-emerald-400 font-bold';
             }
-            const latAWS = Math.round(performance.now() - t0AWS);
+        }
 
-            // Update AWS UI
-            updateAwsUI(awsResult, latAWS);
+        // ===== Painel de métricas (latência, cold/warm) + exportação CSV =====
+        function registrarMetrica(nome, requestId, result, httpStatus, lat) {
+            metrics.unshift({
+                hora: new Date().toLocaleTimeString('pt-BR'),
+                requestId,
+                nuvem: { aws: 'AWS', azure: 'Azure', gcp: 'GCP' }[nome],
+                resultado: result.status === 'fallback' ? 'fallback' : 'ok',
+                http: httpStatus ?? '',
+                latenciaMs: lat,
+                inicio: callCount[nome] === 1 ? 'cold' : 'warm',
+                modo: executionMode,
+                erro: result.error || ''
+            });
+            renderMetricas();
+        }
 
-            // Extract Montante Bruto for cascading to Azure & GCP
-            const montanteBruto = (awsResult && awsResult.data) ? awsResult.data.montanteBruto : (aporteInicial + aporteMensal * tempoMeses);
-            const totalInvestido = (awsResult && awsResult.data) ? awsResult.data.totalInvestido : (aporteInicial + aporteMensal * tempoMeses);
+        function media(lista) {
+            return lista.length ? Math.round(lista.reduce((s, v) => s + v, 0) / lista.length) : null;
+        }
 
-            // --- FUNCTION 2: AZURE FUNCTIONS ---
-            callCount.azure++;
-            const t0Azure = performance.now();
-            let azureResult = null;
+        function renderMetricas() {
+            const corpo = document.getElementById('metricsBody');
+            if (!corpo) return;
+            corpo.innerHTML = metrics.slice(0, 30).map(m => `
+                <tr class="border-t border-slate-800/60">
+                    <td class="py-1 pr-2 text-slate-500">${m.hora}</td>
+                    <td class="py-1 pr-2">${m.nuvem}</td>
+                    <td class="py-1 pr-2 ${m.resultado === 'ok' ? 'text-emerald-400' : 'text-amber-400'}">${m.resultado === 'ok' ? 'OK' : 'Fallback'}${m.http ? ` (${m.http})` : ''}</td>
+                    <td class="py-1 pr-2 text-right">${m.latenciaMs} ms</td>
+                    <td class="py-1 pr-2 uppercase text-[10px]">${m.inicio}</td>
+                    <td class="py-1 text-slate-500">${m.requestId}</td>
+                </tr>`).join('') || '<tr><td colspan="6" class="py-2 text-slate-500">Nenhuma chamada ainda.</td></tr>';
 
-            if (failAzure) {
-                await new Promise(r => setTimeout(r, 500));
-                azureResult = { status: 'error', error: 'Simulated Azure Service Unavailable' };
-            } else if (executionMode === 'real' && endpoints.azure) {
-                try {
-                    const res = await fetchWithTimeout(endpoints.azure, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ montanteBRL: montanteBruto })
-                    });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    azureResult = await res.json();
-                } catch (e) {
-                    console.warn("Azure Fallback deployed:", e);
-                    azureResult = { ...calcAzureLocal(montanteBruto), status: 'fallback', error: e.message };
-                }
-            } else {
-                await new Promise(r => setTimeout(r, 180 + Math.random() * 250));
-                azureResult = calcAzureLocal(montanteBruto);
-                if (executionMode === 'real') azureResult = { ...azureResult, status: 'fallback', error: 'URL da Azure não configurada' };
-            }
-            const latAzure = Math.round(performance.now() - t0Azure);
+            // Médias só das respostas reais da nuvem (sem fallback)
+            const resumo = ['AWS', 'Azure', 'GCP'].map(n => {
+                const ok = metrics.filter(m => m.nuvem === n && m.resultado === 'ok' && m.modo === 'real');
+                const cold = media(ok.filter(m => m.inicio === 'cold').map(m => m.latenciaMs));
+                const warm = media(ok.filter(m => m.inicio === 'warm').map(m => m.latenciaMs));
+                return `<span class="mr-4"><b class="text-slate-300">${n}</b> cold ${cold ?? '--'} ms · warm ${warm ?? '--'} ms</span>`;
+            }).join('');
+            document.getElementById('metricsSummary').innerHTML = resumo;
+        }
 
-            // Update Azure UI
-            updateAzureUI(azureResult, latAzure);
+        function exportarCSV() {
+            const colunas = ['hora', 'requestId', 'nuvem', 'resultado', 'http', 'latenciaMs', 'inicio', 'modo', 'erro'];
+            const escapar = v => `"${String(v).replace(/"/g, '""')}"`;
+            const linhas = [colunas.join(';'), ...metrics.slice().reverse().map(m => colunas.map(c => escapar(m[c])).join(';'))];
+            const blob = new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `metricas-multicloud-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
 
-            // --- FUNCTION 3: GCP CLOUD FUNCTIONS ---
-            callCount.gcp++;
-            const t0GCP = performance.now();
-            let gcpResult = null;
-
-            if (failGCP) {
-                await new Promise(r => setTimeout(r, 600));
-                gcpResult = { status: 'error', error: 'Simulated Gateway Timeout (GCP)' };
-            } else if (executionMode === 'real' && endpoints.gcp) {
-                try {
-                    const res = await fetchWithTimeout(endpoints.gcp, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ montanteBruto, totalInvestido, taxaInflacao, tempoMeses })
-                    });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    gcpResult = await res.json();
-                } catch (e) {
-                    console.warn("GCP Fallback deployed:", e);
-                    gcpResult = { ...calcGCPLocal(montanteBruto, totalInvestido, taxaInflacao, tempoMeses), status: 'fallback', error: e.message };
-                }
-            } else {
-                await new Promise(r => setTimeout(r, 120 + Math.random() * 180));
-                gcpResult = calcGCPLocal(montanteBruto, totalInvestido, taxaInflacao, tempoMeses);
-                if (executionMode === 'real') gcpResult = { ...gcpResult, status: 'fallback', error: 'URL do GCP não configurada' };
-            }
-            const latGCP = Math.round(performance.now() - t0GCP);
-
-            // Update GCP UI
-            updateGcpUI(gcpResult, latGCP);
-
-            // Update Chart
-            updateChartData(awsResult, gcpResult, aporteInicial, aporteMensal, tempoMeses, taxaInflacao);
+        function limparMetricas() {
+            metrics.length = 0;
+            callCount.aws = callCount.azure = callCount.gcp = 0;
+            renderMetricas();
         }
 
         // Card Reset State
@@ -762,7 +903,7 @@
                 badge.innerText = "Indisponível";
                 card.className = "bg-slate-900 border border-rose-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
 
-                document.getElementById('valMontanteBruto').innerText = "Serviço Indisponível";
+                document.getElementById('valMontanteBruto').innerText = "Serviço Temporariamente Indisponível";
                 document.getElementById('valTotalInvestido').innerText = "R$ --";
                 document.getElementById('valLucroBruto').innerText = "R$ --";
 
@@ -803,7 +944,7 @@
                 badge.innerText = "Indisponível";
                 card.className = "bg-slate-900 border border-rose-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
 
-                document.getElementById('valUSD').innerText = "Serviço Indisponível";
+                document.getElementById('valUSD').innerText = "Serviço Temporariamente Indisponível";
                 document.getElementById('valEUR').innerText = "€ --";
                 document.getElementById('valCambio').innerText = "--";
 
@@ -844,7 +985,7 @@
                 badge.innerText = "Indisponível";
                 card.className = "bg-slate-900 border border-rose-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300";
 
-                document.getElementById('valMontanteReal').innerText = "Serviço Indisponível";
+                document.getElementById('valMontanteReal').innerText = "Serviço Temporariamente Indisponível";
                 document.getElementById('valPerdaInflacao').innerText = "R$ --";
                 document.getElementById('valLucroReal').innerText = "R$ --";
 
