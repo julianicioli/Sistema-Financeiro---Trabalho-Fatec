@@ -1,6 +1,6 @@
 // Roda o index.html de verdade (jsdom) com um fetch falso que encaminha cada requisição
 // para a função serverless correspondente. Testa o fluxo completo: cascata AWS -> Azure/GCP,
-// fallback, erros 400, modo mock, gráfico e descarte de execuções antigas.
+// fallback, erros 400, modo mock, "Tentar de novo", métricas, gráfico e descarte de execuções antigas.
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -14,6 +14,8 @@ const ROTAS = {
     'azure.test': invocarAzure,
     'gcp.test': invocarGCP
 };
+
+const ENTRADA_PADRAO = { aporteInicial: 10000, aporteMensal: 500, taxaJuros: 0.8, tempoMeses: 24 };
 
 let dom, win, chamadas, redeQuebrada, atrasoMs;
 
@@ -34,13 +36,17 @@ async function criarPagina() {
             };
             window.fetch = async (url, opts) => {
                 const u = new URL(url);
-                chamadas.push({ host: u.host, simularErro: u.searchParams.get('simularErro'), body: JSON.parse(opts.body) });
+                const headers = Object.fromEntries(Object.entries(opts.headers || {}).map(([k, v]) => [k.toLowerCase(), v]));
+                chamadas.push({ host: u.host, simularErro: u.searchParams.get('simularErro'), body: JSON.parse(opts.body), headers });
                 if (atrasoMs[u.host]) await new Promise(r => setTimeout(r, atrasoMs[u.host]));
                 if (redeQuebrada.has(u.host)) throw new TypeError('Failed to fetch');
-                const r = await ROTAS[u.host]({
+                const rota = ROTAS[u.host];
+                if (!rota) throw new TypeError('Failed to fetch');
+                const r = await rota({
                     method: opts.method,
                     body: JSON.parse(opts.body),
-                    query: Object.fromEntries(u.searchParams)
+                    query: Object.fromEntries(u.searchParams),
+                    headers
                 });
                 return { ok: r.status >= 200 && r.status < 300, status: r.status, json: async () => r.body };
             };
@@ -48,11 +54,11 @@ async function criarPagina() {
     });
     win = dom.window;
     // Aponta a página para as "nuvens" falsas
-    win.eval(`endpoints.aws = 'https://aws.test/'; endpoints.azure = 'https://azure.test/api/conversorCambio?code=abc'; endpoints.gcp = 'https://gcp.test/';`);
+    win.eval(`endpoints.aws = 'https://aws.test/'; endpoints.azure = 'https://azure.test/api/cambio'; endpoints.gcp = 'https://gcp.test/';`);
     // Espera a execução automática do carregamento terminar antes de cada teste
     const inicio = Date.now();
-    while (win.eval('execucaoAtual') < 1 || $('btnRun').disabled) {
-        if (Date.now() - inicio > 3000) throw new Error('execução inicial não terminou');
+    while (!win.eval('lastRun') || $('btnRun').disabled) {
+        if (Date.now() - inicio > 5000) throw new Error('execução inicial não terminou');
         await new Promise(r => setTimeout(r, 10));
     }
     chamadas.length = 0;
@@ -64,6 +70,8 @@ const rodar = () => win.eval('runMulticloudSimulation()');
 const json = (cloud) => JSON.parse(texto(`${cloud}JsonDisplay`));
 const grafico = () => win.eval('chartInstance').data.datasets;
 const brl = (v) => win.eval(`formatBRL(${v})`);
+const visivel = (id) => !$(id).classList.contains('hidden');
+const awsEsperado = async (entrada = {}) => (await invocarAWS({ body: { ...ENTRADA_PADRAO, ...entrada } })).body.data;
 
 function preencher(valores) {
     for (const [id, v] of Object.entries(valores)) $(id).value = String(v);
@@ -74,10 +82,14 @@ beforeEach(async () => { await criarPagina(); });
 test('modo real: as três nuvens respondem 200 e os valores batem com as funções', async () => {
     await rodar();
 
-    for (const id of ['AWS', 'Azure', 'GCP']) assert.equal(texto(`badge${id}`), '200 OK', id);
+    for (const id of ['AWS', 'Azure', 'GCP']) {
+        assert.equal(texto(`badge${id}`), '200 OK', id);
+        assert.equal(visivel(`warn${id}`), false, id);
+        assert.equal(visivel(`retry${id}`), false, id);
+    }
     assert.equal(texto('awsStatusDisplay'), 'HTTP 200 OK');
 
-    const aws = (await invocarAWS({ body: { aporteInicial: 10000, aporteMensal: 500, taxaJuros: 0.8, tempoMeses: 24 } })).body.data;
+    const aws = await awsEsperado();
     assert.equal(texto('valMontanteBruto'), brl(aws.montanteBruto));
 
     // Azure e GCP recebem o montante calculado pela AWS
@@ -94,21 +106,41 @@ test('modo real: as três nuvens respondem 200 e os valores batem com as funçõ
     assert.equal($('btnRun').disabled, false);
 });
 
+test('X-Request-Id: AWS recebe no corpo; Azure e GCP no header; o mesmo id nas três', async () => {
+    await rodar();
+    const id = texto('lastRequestId');
+    assert.match(id, /^[a-z0-9]{12}$/i);
+    assert.equal(chamadas.find(c => c.host === 'aws.test').body.requestId, id);
+    assert.equal(chamadas.find(c => c.host === 'azure.test').headers['x-request-id'], id);
+    assert.equal(chamadas.find(c => c.host === 'gcp.test').headers['x-request-id'], id);
+    assert.equal(json('aws').requestId, id);
+    assert.equal(json('gcp').requestId, id);
+});
+
+test('taxa ao ano é convertida para a taxa mensal equivalente', async () => {
+    preencher({ taxaJuros: 12 });
+    $('tipoTaxa').value = 'anual';
+    await rodar();
+    const enviada = chamadas.find(c => c.host === 'aws.test').body.taxaJuros;
+    assert.ok(Math.abs(enviada - (Math.pow(1.12, 1 / 12) - 1) * 100) < 1e-5, String(enviada));
+});
+
 test('falha forçada na AWS: chama ?simularErro=true, recebe 500 e ativa fallback visível', async () => {
     $('failAWS').checked = true;
     await rodar();
 
     const req = chamadas.find(c => c.host === 'aws.test');
     assert.equal(req.simularErro, 'true');
-    assert.equal(texto('badgeAWS'), 'Fallback Local');   // antes aparecia "200 OK"
-    assert.equal(texto('awsStatusDisplay'), 'HTTP 500 Internal Error');
+    assert.equal(texto('badgeAWS'), 'Fallback local');
+    assert.equal(texto('awsStatusDisplay'), 'Fallback local · HTTP 500');
+    assert.ok(visivel('warnAWS'));
+    assert.ok(visivel('retryAWS'));
     const corpo = json('aws');
     assert.equal(corpo.status, 'fallback');
     assert.equal(corpo.respostaNuvem.erro, 'INTERNO');
 
-    // O fallback calcula o montante com a taxa do usuário e as outras nuvens seguem funcionando
-    const esperado = (await invocarAWS({ body: { aporteInicial: 10000, aporteMensal: 500, taxaJuros: 0.8, tempoMeses: 24 } })).body.data;
-    assert.equal(texto('valMontanteBruto'), brl(esperado.montanteBruto));
+    // O fallback calcula o mesmo montante e as outras nuvens seguem funcionando
+    assert.equal(texto('valMontanteBruto'), brl((await awsEsperado()).montanteBruto));
     assert.equal(texto('badgeAzure'), '200 OK');
     assert.equal(texto('badgeGCP'), '200 OK');
 });
@@ -117,28 +149,35 @@ test('fallback usa a taxa digitada (não mais 0,8% fixo) quando a AWS falha', as
     preencher({ taxaJuros: 2 });
     $('failAWS').checked = true;
     await rodar();
-    const esperado = (await invocarAWS({ body: { aporteInicial: 10000, aporteMensal: 500, taxaJuros: 2, tempoMeses: 24 } })).body.data;
-    assert.deepEqual([...grafico()[0].data], esperado.historicoEvolucao);
+    assert.deepEqual([...grafico()[0].data], (await awsEsperado({ taxaJuros: 2 })).historicoEvolucao);
 });
 
-test('falha de rede na GCP: fallback sem status HTTP, demais nuvens intactas', async () => {
+test('falha de rede na GCP: fallback, demais nuvens intactas e "Tentar de novo" refaz só a GCP', async () => {
     redeQuebrada.add('gcp.test');
     await rodar();
-    assert.equal(texto('badgeGCP'), 'Fallback Local');
-    assert.equal(texto('gcpStatusDisplay'), 'Sem resposta (rede/timeout)');
-    assert.equal(json('gcp').motivoFallback, 'Failed to fetch');
+    assert.equal(texto('badgeGCP'), 'Fallback local');
+    assert.equal(texto('gcpStatusDisplay'), 'Fallback local · Failed to fetch');
     assert.notEqual(texto('valMontanteReal'), 'Serviço Indisponível');
     assert.equal(texto('badgeAWS'), '200 OK');
     assert.equal(texto('badgeAzure'), '200 OK');
+
+    redeQuebrada.clear();
+    chamadas.length = 0;
+    await win.eval(`tentarDeNovo('gcp')`);
+    assert.deepEqual(chamadas.map(c => c.host), ['gcp.test']);
+    assert.equal(texto('badgeGCP'), '200 OK');
+    assert.equal(visivel('retryGCP'), false);
 });
 
 test('erro 400 de validação é exibido (não é mascarado por fallback)', async () => {
-    preencher({ aporteInicial: 0, aporteMensal: 0 }); // montante 0 -> GCP exige > 0
+    preencher({ aporteInicial: 0, aporteMensal: 0 }); // montante 0 -> Azure e GCP exigem > 0
     await rodar();
     assert.equal(texto('badgeGCP'), '400 Inválido');
     assert.equal(texto('gcpStatusDisplay'), 'HTTP 400 Bad Request');
     assert.equal(json('gcp').detalhes[0].campo, 'montanteBruto');
     assert.equal(texto('valMontanteReal'), 'Serviço Indisponível');
+    assert.equal(texto('badgeAzure'), '400 Inválido');
+    assert.equal(visivel('warnGCP'), false);
     assert.equal(grafico()[1].data.length, 0); // curva IPCA some quando a GCP não respondeu
 });
 
@@ -148,14 +187,16 @@ test('400 na AWS interrompe a cascata com mensagem de dependência', async () =>
     assert.equal(texto('badgeAWS'), '400 Inválido');
     assert.equal(texto('badgeAzure'), 'Indisponível');
     assert.equal(json('azure').erro, 'DEPENDENCIA');
+    assert.equal(texto('gcpStatusDisplay'), 'Não executada');
     assert.equal(chamadas.filter(c => c.host !== 'aws.test').length, 0);
+    assert.equal(grafico()[0].data.length, 0);
 });
 
-test('endpoint vazio no modo real: cálculo local identificado como tal', async () => {
+test('endpoint vazio no modo real: fallback local com o motivo', async () => {
     win.eval(`endpoints.azure = ''`);
     await rodar();
-    assert.equal(texto('badgeAzure'), 'Local (sem endpoint)');
-    assert.equal(texto('azureStatusDisplay'), 'Sem requisição HTTP');
+    assert.equal(texto('badgeAzure'), 'Fallback local');
+    assert.equal(texto('azureStatusDisplay'), 'Fallback local · URL da função não configurada');
     assert.equal(texto('typeAzure'), 'Local');
 });
 
@@ -165,14 +206,30 @@ test('modo mock: nenhuma requisição HTTP; falha forçada vira fallback', async
     $('failAzure').checked = true;
     await rodar();
     assert.equal(chamadas.length, 0);
-    assert.equal(texto('badgeAWS'), 'Local (mock)');
-    assert.equal(texto('badgeAzure'), 'Fallback Local');
+    assert.equal(texto('badgeAWS'), 'Mock OK');
+    assert.equal(texto('typeAWS'), 'Mock');
+    assert.equal(texto('badgeAzure'), 'Fallback local');
 });
 
-test('cold start vem da própria função', async () => {
+test('cold/warm vem da própria função', async () => {
     await rodar();
-    assert.match(texto('typeAWS'), /^(Cold|Warm) Start$/);
-    assert.equal(texto('typeAWS'), json('aws').coldStart ? 'Cold Start' : 'Warm Start');
+    for (const [cloud, id] of [['aws', 'AWS'], ['azure', 'Azure'], ['gcp', 'GCP']]) {
+        assert.equal(typeof json(cloud).coldStart, 'boolean', cloud);
+        assert.equal(texto(`type${id}`), json(cloud).coldStart ? 'Cold Start' : 'Warm Start', cloud);
+    }
+});
+
+test('painel de métricas registra cada chamada com resultado e latência', async () => {
+    win.eval('limparMetricas()');
+    $('failGCP').checked = true;
+    await rodar();
+    const metricas = win.eval('metrics');
+    assert.equal(metricas.length, 3);
+    const porNuvem = Object.fromEntries(metricas.map(m => [m.nuvem, m]));
+    assert.equal(porNuvem.AWS.resultado, 'ok');
+    assert.equal(porNuvem.GCP.resultado, 'fallback');
+    assert.equal(porNuvem.GCP.http, 500);
+    assert.equal($('metricsBody').querySelectorAll('tr').length, 3);
 });
 
 test('execução antiga não sobrescreve a mais nova', async () => {
@@ -183,8 +240,8 @@ test('execução antiga não sobrescreve a mais nova', async () => {
     preencher({ taxaJuros: 3 });
     const segunda = rodar();           // taxa 3% (rápida)
     await Promise.all([primeira, segunda]);
-    assert.equal(json('aws').data.montanteBruto,
-        (await invocarAWS({ body: { aporteInicial: 10000, aporteMensal: 500, taxaJuros: 3, tempoMeses: 24 } })).body.data.montanteBruto);
+    assert.equal(json('aws').data.montanteBruto, (await awsEsperado({ taxaJuros: 3 })).montanteBruto);
+    assert.equal($('btnRun').disabled, false);
 });
 
 test('modal de endpoints é preenchido a partir da configuração e salva alterações', async () => {

@@ -5,8 +5,16 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 export const awsHandler = require('../aws-lambda/index.js').handler;
-export const azureHandler = require('../azure-functions/conversorCambio/index.js');
 export const { projetorInflacao: gcpHandler } = await import('../google-functions/index.js');
+
+// Azure (modelo v4): captura o handler registrado em app.http('cambio', ...)
+const az = createRequire(new URL('../azure-functions/package.json', import.meta.url))('@azure/functions');
+let azureRegistro;
+const appHttpOriginal = az.app.http;
+az.app.http = (nome, opcoes) => { azureRegistro = { nome, ...opcoes }; };
+await import('../azure-functions/src/functions/cambio.js');
+az.app.http = appHttpOriginal;
+export const azureRegistrada = azureRegistro;
 
 export async function invocarAWS({ method = 'POST', body, query, headers = {} } = {}) {
     const r = await awsHandler({
@@ -18,10 +26,35 @@ export async function invocarAWS({ method = 'POST', body, query, headers = {} } 
     return { status: r.statusCode, headers: r.headers, body: r.body ? JSON.parse(r.body) : r.body };
 }
 
-export async function invocarAzure({ method = 'POST', body, query = {}, headers = {} } = {}) {
-    const context = { log: Object.assign(() => {}, { error: () => {} }) };
-    await azureHandler(context, { method, body, query, headers });
-    return { status: context.res.status, headers: context.res.headers, body: context.res.body };
+/**
+ * Invoca a Azure Function. `cotacaoAoVivo` simula a AwesomeAPI:
+ *  null (padrão) = API fora do ar -> a função usa a tabela fixa; objeto { USD, EUR } = cotações devolvidas.
+ */
+export async function invocarAzure({ method = 'POST', body, query = {}, headers = {}, cotacaoAoVivo = null } = {}) {
+    const url = new URL('http://localhost/api/cambio');
+    for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
+    const request = new az.HttpRequest({
+        method,
+        url: url.toString(),
+        headers,
+        body: body === undefined ? undefined : { string: typeof body === 'string' ? body : JSON.stringify(body) }
+    });
+    const context = new az.InvocationContext({ functionName: 'cambio', logHandler: () => {} });
+
+    const fetchOriginal = globalThis.fetch;
+    const chamadasApi = [];
+    globalThis.fetch = async (alvo) => {
+        chamadasApi.push(String(alvo));
+        if (!cotacaoAoVivo) throw new TypeError('fetch failed');
+        const json = Object.fromEntries(Object.entries(cotacaoAoVivo).map(([m, bid]) => [`${m}BRL`, { bid: String(bid) }]));
+        return { ok: true, json: async () => json };
+    };
+    try {
+        const r = await azureRegistro.handler(request, context);
+        return { status: r.status, headers: r.headers, body: r.jsonBody, chamadasApi };
+    } finally {
+        globalThis.fetch = fetchOriginal;
+    }
 }
 
 export async function invocarGCP({ method = 'POST', body, query = {}, headers = {} } = {}) {

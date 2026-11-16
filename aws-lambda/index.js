@@ -79,7 +79,8 @@ exports.handler = async (event = {}) => {
 
     // Function URL / API Gateway HTTP API (payload 2.0) ou API Gateway REST (payload 1.0)
     const metodo = event.requestContext?.http?.method || event.httpMethod || "POST";
-    const requestId = event.headers?.["x-request-id"] || event.headers?.["X-Request-Id"] || null;
+    // A Function URL só libera o header Content-Type no CORS, então o front também manda o requestId no corpo
+    let requestId = event.headers?.["x-request-id"] || event.headers?.["X-Request-Id"] || null;
 
     if (metodo === "OPTIONS") {
         return { statusCode: 204, headers, body: "" };
@@ -113,6 +114,10 @@ exports.handler = async (event = {}) => {
                 detalhes: [{ campo: "body", mensagem: "JSON inválido" }],
                 requestId
             });
+        }
+
+        if (!requestId && typeof body?.requestId === "string") {
+            requestId = body.requestId.slice(0, 64);
         }
 
         const { detalhes, aporteInicial, aporteMensal, taxaJuros, tempoMeses } = validar(body || {});

@@ -75,7 +75,7 @@
             <div class="flex items-center space-x-3">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-blue-500 to-emerald-500 p-0.5 flex items-center justify-center">
                     <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                        <i data-lucide="chart-line"class="w-5 h-5 text-amber-400"></i>
+                        <i data-lucide="chart-line" class="w-5 h-5 text-amber-400"></i>
                     </div>
                 </div>
             </div>
@@ -161,8 +161,14 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Juros Mensal (%)</label>
-                                <input type="number" id="taxaJuros" value="0.8" step="0.01" min="0" max="100" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition font-mono">
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Taxa de Juros (%)</label>
+                                <div class="flex gap-1">
+                                    <input type="number" id="taxaJuros" value="0.8" step="0.01" min="0" max="100" required class="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition font-mono">
+                                    <select id="tipoTaxa" title="Taxa ao mês ou ao ano" class="bg-slate-950 border border-slate-800 rounded-xl px-1.5 text-xs text-slate-300 focus:outline-none focus:border-amber-500">
+                                        <option value="mensal" selected>a.m.</option>
+                                        <option value="anual">a.a.</option>
+                                    </select>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Tempo (Meses)</label>
@@ -190,25 +196,25 @@
                         <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">Apresentação</span>
                     </div>
                     <p class="text-xs text-slate-400">
-                        Marque para forçar uma falha real (<code>?simularErro=true</code> → HTTP 500) e demonstrar o fallback isolado em tempo real:
+                        Marque e execute: a chamada vai com <code class="text-slate-300">?simularErro=true</code> e a nuvem responde erro 500 de verdade (aparece nos logs do console). Só aquele card cai para o cálculo local:
                     </p>
 
                     <div class="space-y-2 pt-1 text-xs font-medium">
                         <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 cursor-pointer hover:border-slate-700">
                             <span class="flex items-center gap-2 text-slate-300">
-                                <span class="w-2 h-2 rounded-full bg-aws"></span> Forçar Falha AWS
+                                <span class="w-2 h-2 rounded-full bg-aws"></span> Simular falha AWS
                             </span>
                             <input type="checkbox" id="failAWS" class="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-0">
                         </label>
                         <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 cursor-pointer hover:border-slate-700">
                             <span class="flex items-center gap-2 text-slate-300">
-                                <span class="w-2 h-2 rounded-full bg-azure"></span> Forçar Falha Azure
+                                <span class="w-2 h-2 rounded-full bg-azure"></span> Simular falha Azure
                             </span>
                             <input type="checkbox" id="failAzure" class="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0">
                         </label>
                         <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 cursor-pointer hover:border-slate-700">
                             <span class="flex items-center gap-2 text-slate-300">
-                                <span class="w-2 h-2 rounded-full bg-gcp-blue"></span> Forçar Falha GCP
+                                <span class="w-2 h-2 rounded-full bg-gcp-blue"></span> Simular falha GCP
                             </span>
                             <input type="checkbox" id="failGCP" class="rounded bg-slate-900 border-slate-700 text-indigo-500 focus:ring-0">
                         </label>
@@ -241,6 +247,7 @@
                             
                             <p class="text-[11px] text-slate-400 font-medium">Juros Compostos</p>
                             <h4 id="valMontanteBruto" class="text-xl font-extrabold text-white mt-1 font-mono">R$ --</h4>
+                            <p id="warnAWS" class="hidden mt-1 text-[11px] text-amber-400">Serviço Temporariamente Indisponível · valores do cálculo local</p>
                             
                             <div class="mt-3 pt-2 border-t border-slate-800/60 text-xs space-y-1 text-slate-400">
                                 <div class="flex justify-between">
@@ -256,6 +263,7 @@
 
                         <div class="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                             <span id="latAWS" class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> -- ms</span>
+                            <button id="retryAWS" type="button" onclick="tentarDeNovo('aws')" class="hidden text-[10px] px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 font-sans">Tentar de novo</button>
                             <span id="typeAWS" class="text-[10px] uppercase">AWS</span>
                         </div>
                     </div>
@@ -278,6 +286,7 @@
 
                             <p class="text-[11px] text-slate-400 font-medium">Conversão Internacional</p>
                             <h4 id="valUSD" class="text-xl font-extrabold text-white mt-1 font-mono">$ -- USD</h4>
+                            <p id="warnAzure" class="hidden mt-1 text-[11px] text-amber-400">Serviço Temporariamente Indisponível · valores do cálculo local</p>
 
                             <div class="mt-3 pt-2 border-t border-slate-800/60 text-xs space-y-1 text-slate-400">
                                 <div class="flex justify-between">
@@ -293,6 +302,7 @@
 
                         <div class="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                             <span id="latAzure" class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> -- ms</span>
+                            <button id="retryAzure" type="button" onclick="tentarDeNovo('azure')" class="hidden text-[10px] px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-sky-300 font-sans">Tentar de novo</button>
                             <span id="typeAzure" class="text-[10px] uppercase">Azure</span>
                         </div>
                     </div>
@@ -315,6 +325,7 @@
 
                             <p class="text-[11px] text-slate-400 font-medium">Patrimônio Real (IPCA)</p>
                             <h4 id="valMontanteReal" class="text-xl font-extrabold text-white mt-1 font-mono">R$ --</h4>
+                            <p id="warnGCP" class="hidden mt-1 text-[11px] text-amber-400">Serviço Temporariamente Indisponível · valores do cálculo local</p>
 
                             <div class="mt-3 pt-2 border-t border-slate-800/60 text-xs space-y-1 text-slate-400">
                                 <div class="flex justify-between">
@@ -330,6 +341,7 @@
 
                         <div class="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                             <span id="latGCP" class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> -- ms</span>
+                            <button id="retryGCP" type="button" onclick="tentarDeNovo('gcp')" class="hidden text-[10px] px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-indigo-300 font-sans">Tentar de novo</button>
                             <span id="typeGCP" class="text-[10px] uppercase">GCP</span>
                         </div>
                     </div>
@@ -341,7 +353,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                         <div>
                             <h3 class="text-base font-semibold text-white flex items-center gap-2">
-                                <i data-lucide="chart-area"class="w-4 h-4 text-emerald-400"></i> Evolução Patrimonial vs. Inflação
+                                <i data-lucide="chart-area" class="w-4 h-4 text-emerald-400"></i> Evolução Patrimonial vs. Inflação
                             </h3>
                             <p class="text-xs text-slate-400">Comparativo entre Montante Bruto (AWS), Valor Corrigido pelo IPCA e Total Investido</p>
                         </div>
@@ -377,7 +389,7 @@
 
                     <div id="tabAzure" class="tab-content space-y-2 hidden">
                         <div class="flex items-center justify-between text-xs font-mono text-slate-400">
-                            <span id="azureEndpointDisplay">POST /azure/conversor-cambio</span>
+                            <span id="azureEndpointDisplay">POST /api/cambio</span>
                             <span id="azureStatusDisplay" class="text-slate-500">HTTP --</span>
                         </div>
                         <pre id="azureJsonDisplay" class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-[11px] font-mono text-slate-300 overflow-x-auto max-h-40">{ "message": "Aguardando execução da requisição..." }</pre>
@@ -390,6 +402,30 @@
                         </div>
                         <pre id="gcpJsonDisplay" class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-[11px] font-mono text-slate-300 overflow-x-auto max-h-40">{ "message": "Aguardando execução da requisição..." }</pre>
                     </div>
+                </div>
+
+                <!-- Painel de métricas: latência por chamada, cold/warm e exportação CSV -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                            <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i> Métricas de Latência (Cold / Warm)
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="limparMetricas()" class="px-2.5 py-1 rounded-lg text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300">Limpar</button>
+                            <button type="button" onclick="exportarCSV()" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">Exportar CSV</button>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 font-mono">Última simulação · X-Request-Id: <span id="lastRequestId" class="text-slate-300">--</span></p>
+                    <div id="metricsSummary" class="text-[11px] text-slate-400 font-mono flex flex-wrap gap-y-1"></div>
+                    <div class="overflow-x-auto max-h-56">
+                        <table class="w-full text-[11px] font-mono text-slate-300">
+                            <thead class="text-slate-500 text-left">
+                                <tr><th class="pr-2 font-medium">Hora</th><th class="pr-2 font-medium">Nuvem</th><th class="pr-2 font-medium">Resultado</th><th class="pr-2 font-medium text-right">Latência</th><th class="pr-2 font-medium">Início</th><th class="font-medium">Request-Id</th></tr>
+                            </thead>
+                            <tbody id="metricsBody"></tbody>
+                        </table>
+                    </div>
+                    <p class="text-[10px] text-slate-500">Cold/Warm vem da própria função (campo coldStart); quando ela não informa, a 1ª chamada da aba conta como cold. Médias consideram só respostas reais (sem fallback).</p>
                 </div>
 
             </div>
@@ -414,7 +450,7 @@
             </div>
 
             <p class="text-xs text-slate-400">
-                Insira as URLs públicas disponibilizadas nos consoles da AWS, Azure e Google Cloud Platform. Campo vazio = cálculo local no navegador.
+                Insira as URLs públicas disponibilizadas nos consoles da AWS, Azure e Google Cloud Platform. Campo vazio = cálculo local (fallback).
             </p>
 
             <div class="space-y-4">
@@ -425,7 +461,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-sky-400 mb-1">Azure Function HTTP Trigger URL</label>
-                    <input type="url" id="endpointAzure" placeholder="https://seu-app.azurewebsites.net/api/conversorCambio" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-sky-500 focus:outline-none">
+                    <input type="url" id="endpointAzure" placeholder="https://seu-app.azurewebsites.net/api/cambio" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:border-sky-500 focus:outline-none">
                 </div>
 
                 <div>
@@ -448,7 +484,7 @@
     <!-- Cálculos locais (fallback / modo mock). Espelham exatamente as funções serverless:
          tests/paridade.test.mjs garante que os resultados continuam idênticos. -->
     <script id="calculos-locais">
-        const arredondar = (n) => Math.round(n * 100) / 100;
+        const arredondar = (n, casas = 2) => Math.round(n * 10 ** casas) / 10 ** casas;
 
         // Espelho de aws-lambda/index.js (aportes no fim de cada mês)
         function calcAWSLocal(aporteInicial, aporteMensal, taxaJurosMensal, meses) {
@@ -470,16 +506,20 @@
             };
         }
 
-        // Espelho de azure-functions/conversorCambio/index.js
+        // Espelho de azure-functions/src/cambio.js com a tabela fixa de reserva (modo "fixa")
         function calcAzureLocal(montanteBRL) {
-            const cotacaoUSD = 5.60;
-            const cotacaoEUR = 6.10;
+            const tabela = { USD: 5.60, EUR: 6.10 };
+            const conversoes = Object.fromEntries(
+                Object.entries(tabela).map(([m, cotacao]) => [m, { cotacao, valor: arredondar(montanteBRL / cotacao) }])
+            );
             return {
                 valorBRL: arredondar(montanteBRL),
-                valorUSD: arredondar(montanteBRL / cotacaoUSD),
-                valorEUR: arredondar(montanteBRL / cotacaoEUR),
-                cotacaoUSD,
-                cotacaoEUR
+                valorUSD: conversoes.USD.valor,
+                valorEUR: conversoes.EUR.valor,
+                cotacaoUSD: conversoes.USD.cotacao,
+                cotacaoEUR: conversoes.EUR.cotacao,
+                conversoes,
+                fonte: 'tabela-fixa'
             };
         }
 
@@ -501,21 +541,21 @@
     <script id="app">
         let executionMode = 'real'; // 'mock' ou 'real' (abre chamando as nuvens)
         let chartInstance = null;
-        let execucaoAtual = 0;      // descarta respostas de execuções antigas
 
-        // Fonte única dos endpoints (o modal é preenchido a partir daqui). Vazio = cálculo local.
+        // Fonte única dos endpoints (o modal é preenchido a partir daqui)
         const endpoints = {
             aws: 'https://najxnjvcad46j3eoua4nkqlauy0xovyy.lambda-url.sa-east-1.on.aws/',
             azure: '',
             gcp: 'https://inflacao-20304353773.us-central1.run.app'
         };
 
+        const callCount = { aws: 0, azure: 0, gcp: 0 };
+
         const BADGE_BASE = 'text-[10px] font-semibold px-2 py-0.5 rounded-full border ';
         const CARD_BASE = 'bg-slate-900 border rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300 ';
         const ESTILOS = {
             ok: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
             fallback: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-            local: 'bg-slate-800 text-slate-300 border-slate-700',
             erro: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
             carregando: 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
         };
@@ -569,6 +609,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             initChart();
+            renderMetricas();
             runMulticloudSimulation();
         });
 
@@ -644,97 +685,167 @@
             });
         }
 
-        async function fetchWithTimeout(resource, options = {}, timeout = 8000) {
+        const TIMEOUT_MS = 4000; // tempo limite por chamada (planejamento: 4 s)
+
+        async function fetchWithTimeout(resource, options = {}, timeout = TIMEOUT_MS) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
             try {
                 return await fetch(resource, { ...options, signal: controller.signal });
             } catch (e) {
-                if (e.name === 'AbortError') throw new Error(`Timeout após ${timeout} ms`);
+                if (e.name === 'AbortError') throw new Error(`Tempo limite de ${timeout / 1000} s excedido`);
                 throw e;
             } finally {
                 clearTimeout(id);
             }
         }
 
-        const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+        // ===== Orquestração: AWS primeiro (cascata), depois Azure + GCP em paralelo =====
+        let lastRun = null;      // última simulação: entradas, requestId e montante vindo da AWS
+        const metrics = [];      // histórico de chamadas para o painel de métricas / CSV
 
-        function comSimularErro(url) {
-            const u = new URL(url);
-            u.searchParams.set('simularErro', 'true');
-            return u.toString();
+        function novoRequestId() {
+            const base = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}${Math.random()}`;
+            return base.replace(/[^a-z0-9]/gi, '').slice(0, 12);
+        }
+
+        function lerEntradas() {
+            const taxa = parseFloat(document.getElementById('taxaJuros').value) || 0;
+            const tipoTaxa = document.getElementById('tipoTaxa').value;
+            // Taxa ao ano vira taxa equivalente ao mês: (1 + a)^(1/12) - 1
+            const taxaJurosMensal = tipoTaxa === 'anual'
+                ? Math.round((Math.pow(1 + taxa / 100, 1 / 12) - 1) * 100 * 1e6) / 1e6
+                : taxa;
+            return {
+                aporteInicial: parseFloat(document.getElementById('aporteInicial').value) || 0,
+                aporteMensal: parseFloat(document.getElementById('aporteMensal').value) || 0,
+                taxaJurosMensal,
+                tempoMeses: parseInt(document.getElementById('tempoMeses').value) || 12,
+                taxaInflacao: parseFloat(document.getElementById('taxaInflacao').value) || 0
+            };
         }
 
         /**
-         * Chama uma nuvem e devolve um resultado normalizado:
-         *  status: 'success' | 'fallback' | 'error'
-         *  origem: 'nuvem' | 'local'
-         *  httpStatus: código HTTP real (null quando não houve resposta HTTP)
-         * Falhas (rede, timeout, 5xx) ativam o fallback local. Erros 400 (entrada inválida) não:
-         * recalcular localmente com os mesmos dados inválidos esconderia o problema.
+         * Chama uma nuvem e devolve { result, lat, httpStatus }.
+         * result.status: 'success' (nuvem respondeu) | 'fallback' (cálculo local) | 'error' (400, sem fallback)
+         * Falhas (HTTP 5xx/403, timeout, rede, CORS, URL vazia) viram cálculo local marcado como fallback.
+         * Erro 400 (entrada inválida) não: recalcular localmente com os mesmos dados esconderia o problema.
          */
-        async function chamarNuvem(cloud, payload, calculoLocal, forcarFalha) {
+        async function chamarNuvem({ nome, url, body, simularFalha, enviarRequestIdHeader, requestId, calcLocal }) {
+            callCount[nome]++;
             const t0 = performance.now();
-            let resultado;
-            const usarNuvem = executionMode === 'real' && endpoints[cloud];
+            let result;
+            let httpStatus = null;
+            const local = (erro) => ({ status: 'fallback', provider: 'Navegador (cálculo local)', error: erro, data: calcLocal() });
 
-            const fallback = (motivo, httpStatus, respostaNuvem) => ({
-                status: 'fallback',
-                origem: 'local',
-                provider: 'Navegador (cálculo local)',
-                httpStatus,
-                motivoFallback: motivo,
-                ...(respostaNuvem ? { respostaNuvem } : {}),
-                data: calculoLocal()
-            });
-
-            if (usarNuvem) {
+            if (executionMode === 'real' && url) {
                 try {
-                    const url = forcarFalha ? comSimularErro(endpoints[cloud]) : endpoints[cloud];
-                    const res = await fetchWithTimeout(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+                    const alvo = simularFalha ? `${url}${url.includes('?') ? '&' : '?'}simularErro=true` : url;
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (enviarRequestIdHeader) headers['X-Request-Id'] = requestId;
+                    const res = await fetchWithTimeout(alvo, { method: 'POST', headers, body: JSON.stringify(body) });
+                    httpStatus = res.status;
                     const corpo = await res.json().catch(() => null);
-
-                    if (res.ok && corpo && corpo.status === 'success' && corpo.data) {
-                        resultado = { ...corpo, origem: 'nuvem', httpStatus: res.status };
-                    } else if (res.status === 400) {
-                        resultado = { ...(corpo || {}), status: 'error', origem: 'nuvem', httpStatus: 400 };
+                    if (res.status === 400) {
+                        result = { ...(corpo || {}), status: 'error' };
+                    } else if (!res.ok) {
+                        throw Object.assign(new Error(`HTTP ${res.status}`), { corpo });
+                    } else if (!corpo || !corpo.data) {
+                        throw new Error('Resposta sem o campo data');
                     } else {
-                        resultado = fallback(`HTTP ${res.status}`, res.status, corpo);
+                        result = corpo;
                     }
                 } catch (e) {
-                    console.warn(`${cloud.toUpperCase()} fallback ativado:`, e);
-                    resultado = fallback(e.message, null);
+                    console.warn(`[${nome}] fallback local:`, e.message);
+                    result = local(e.message);
+                    if (e.corpo) result.respostaNuvem = e.corpo;
                 }
             } else {
-                await esperar(150 + Math.random() * 200);
-                resultado = forcarFalha
-                    ? fallback('Falha simulada (modo local)', 500)
-                    : {
-                        status: 'success',
-                        origem: 'local',
-                        provider: 'Navegador (cálculo local)',
-                        httpStatus: null,
-                        data: calculoLocal()
-                    };
+                await new Promise(r => setTimeout(r, 150 + Math.random() * 250));
+                if (simularFalha) {
+                    result = local('Falha simulada no navegador (modo Mock Local)');
+                } else if (executionMode === 'real') {
+                    result = local('URL da função não configurada');
+                } else {
+                    result = { status: 'success', provider: 'Navegador (modo Mock Local)', data: calcLocal() };
+                }
             }
 
-            resultado.latenciaMs = Math.round(performance.now() - t0);
-            return resultado;
+            const lat = Math.round(performance.now() - t0);
+            registrarMetrica(nome, requestId, result, httpStatus, lat);
+            return { result, lat, httpStatus };
         }
 
-        function lerParametros() {
-            const num = (id) => Number(document.getElementById(id).value) || 0;
-            return {
-                aporteInicial: num('aporteInicial'),
-                aporteMensal: num('aporteMensal'),
-                taxaJuros: num('taxaJuros'),
-                tempoMeses: Math.trunc(num('tempoMeses')) || 12,
-                taxaInflacao: num('taxaInflacao')
+        // Cada etapa guarda a simulação em que começou; se outra começar no meio, a resposta antiga é descartada
+        async function executarAWS(run) {
+            const { inp, requestId } = run;
+            setCardLoading('aws');
+            const r = await chamarNuvem({
+                nome: 'aws',
+                url: endpoints.aws,
+                // A Function URL da AWS só libera o header Content-Type; o requestId vai no corpo.
+                body: { aporteInicial: inp.aporteInicial, aporteMensal: inp.aporteMensal, taxaJuros: inp.taxaJurosMensal, tempoMeses: inp.tempoMeses, requestId },
+                simularFalha: document.getElementById('failAWS').checked,
+                enviarRequestIdHeader: false,
+                requestId,
+                calcLocal: () => calcAWSLocal(inp.aporteInicial, inp.aporteMensal, inp.taxaJurosMensal, inp.tempoMeses)
+            });
+            if (run !== lastRun) return;
+            atualizarCard('aws', r);
+            run.awsResult = r.result;
+            if (r.result.data) {
+                run.montanteBruto = r.result.data.montanteBruto;
+                run.totalInvestido = r.result.data.totalInvestido;
+            }
+        }
+
+        async function executarAzure(run) {
+            const { montanteBruto, requestId } = run;
+            setCardLoading('azure');
+            const r = await chamarNuvem({
+                nome: 'azure',
+                url: endpoints.azure,
+                body: { montanteBRL: montanteBruto },
+                simularFalha: document.getElementById('failAzure').checked,
+                enviarRequestIdHeader: true,
+                requestId,
+                calcLocal: () => calcAzureLocal(montanteBruto)
+            });
+            if (run !== lastRun) return;
+            atualizarCard('azure', r);
+        }
+
+        async function executarGCP(run) {
+            const { inp, montanteBruto, totalInvestido, requestId } = run;
+            setCardLoading('gcp');
+            const r = await chamarNuvem({
+                nome: 'gcp',
+                url: endpoints.gcp,
+                body: { montanteBruto, totalInvestido, taxaInflacao: inp.taxaInflacao, tempoMeses: inp.tempoMeses },
+                simularFalha: document.getElementById('failGCP').checked,
+                enviarRequestIdHeader: true,
+                requestId,
+                calcLocal: () => calcGCPLocal(montanteBruto, totalInvestido, inp.taxaInflacao, inp.tempoMeses)
+            });
+            if (run !== lastRun) return;
+            atualizarCard('gcp', r);
+            run.gcpResult = r.result;
+        }
+
+        function atualizarGrafico(run) {
+            if (run !== lastRun) return;
+            updateChartData(run.awsResult, run.gcpResult, run.inp);
+        }
+
+        // Sem montante da AWS (erro 400), Azure e GCP não têm o que calcular
+        function marcarDependencia() {
+            const r = {
+                result: { status: 'error', erro: 'DEPENDENCIA', mensagem: 'Montante da AWS indisponível (verifique os parâmetros)' },
+                lat: 0,
+                httpStatus: null
             };
+            atualizarCard('azure', r);
+            atualizarCard('gcp', r);
         }
 
         function setBotaoExecutando(executando) {
@@ -744,66 +855,39 @@
             btn.classList.toggle('cursor-wait', executando);
         }
 
-        // Orquestrador: AWS -> (montante) -> Azure e GCP
+        // Main Execution Orchestrator
         async function runMulticloudSimulation() {
-            const execucao = ++execucaoAtual;
-            const ativa = () => execucao === execucaoAtual;
-            const p = lerParametros();
-            const falhas = {
-                aws: document.getElementById('failAWS').checked,
-                azure: document.getElementById('failAzure').checked,
-                gcp: document.getElementById('failGCP').checked
-            };
-
+            const run = { inp: lerEntradas(), requestId: novoRequestId() };
+            lastRun = run;
+            document.getElementById('lastRequestId').innerText = run.requestId;
             setBotaoExecutando(true);
-            Object.keys(NUVENS).forEach(setCardLoading);
+            setCardLoading('azure');
+            setCardLoading('gcp');
 
             try {
-                // --- FUNÇÃO 1: AWS LAMBDA ---
-                const aws = await chamarNuvem('aws',
-                    { aporteInicial: p.aporteInicial, aporteMensal: p.aporteMensal, taxaJuros: p.taxaJuros, tempoMeses: p.tempoMeses },
-                    () => calcAWSLocal(p.aporteInicial, p.aporteMensal, p.taxaJuros, p.tempoMeses),
-                    falhas.aws);
-                if (!ativa()) return;
-                atualizarCard('aws', aws);
+                // 1) Cascata: a AWS calcula o montante que alimenta Azure e GCP
+                await executarAWS(run);
+                if (run !== lastRun) return;
 
-                // Azure e GCP dependem do montante calculado pela AWS
-                if (aws.status === 'error' || !aws.data) {
-                    const dependencia = {
-                        status: 'error',
-                        erro: 'DEPENDENCIA',
-                        mensagem: 'Montante da AWS indisponível (verifique os parâmetros)',
-                        httpStatus: null,
-                        origem: 'local',
-                        latenciaMs: 0
-                    };
-                    atualizarCard('azure', dependencia);
-                    atualizarCard('gcp', dependencia);
-                    updateChartData(null, null, p);
-                    return;
+                if (run.montanteBruto === undefined) {
+                    marcarDependencia();
+                } else {
+                    // 2) Paralelo: Azure e GCP ao mesmo tempo, uma não espera a outra
+                    await Promise.allSettled([executarAzure(run), executarGCP(run)]);
                 }
-
-                const { montanteBruto, totalInvestido } = aws.data;
-
-                // --- FUNÇÕES 2 e 3: AZURE e GCP (independentes entre si, rodam em paralelo) ---
-                const [azure, gcp] = await Promise.all([
-                    chamarNuvem('azure',
-                        { montanteBRL: montanteBruto },
-                        () => calcAzureLocal(montanteBruto),
-                        falhas.azure),
-                    chamarNuvem('gcp',
-                        { montanteBruto, totalInvestido, taxaInflacao: p.taxaInflacao, tempoMeses: p.tempoMeses },
-                        () => calcGCPLocal(montanteBruto, totalInvestido, p.taxaInflacao, p.tempoMeses),
-                        falhas.gcp)
-                ]);
-                if (!ativa()) return;
-                atualizarCard('azure', azure);
-                atualizarCard('gcp', gcp);
-
-                updateChartData(aws, gcp, p);
+                atualizarGrafico(run);
             } finally {
-                if (ativa()) setBotaoExecutando(false);
+                if (run === lastRun) setBotaoExecutando(false);
             }
+        }
+
+        // "Tentar de novo": refaz só a chamada que falhou (a AWS refaz a simulação, pois alimenta as outras)
+        async function tentarDeNovo(nuvem) {
+            const run = lastRun;
+            if (!run || nuvem === 'aws' || run.montanteBruto === undefined) return runMulticloudSimulation();
+            if (nuvem === 'azure') return executarAzure(run);
+            await executarGCP(run);
+            atualizarGrafico(run);
         }
 
         function setCardLoading(cloud) {
@@ -812,63 +896,124 @@
             badge.innerText = 'Processando...';
         }
 
-        function descreverStatusHttp(res) {
-            if (res.httpStatus) {
-                const textos = { 200: 'OK', 400: 'Bad Request', 500: 'Internal Error', 502: 'Bad Gateway', 503: 'Unavailable', 504: 'Timeout' };
-                return `HTTP ${res.httpStatus} ${textos[res.httpStatus] || ''}`.trim();
-            }
-            if (res.status === 'fallback') return 'Sem resposta (rede/timeout)';
-            return 'Sem requisição HTTP';
+        // Cold/warm: usa o que a própria função informa (coldStart); sem essa informação, 1ª chamada da aba = cold
+        function tipoInicio(nome, result) {
+            if (typeof result.coldStart === 'boolean') return result.coldStart ? 'cold' : 'warm';
+            return callCount[nome] === 1 ? 'cold' : 'warm';
         }
 
-        function descreverBadge(res) {
-            if (res.status === 'error') {
-                return res.httpStatus === 400
-                    ? { texto: '400 Inválido', estilo: ESTILOS.erro }
-                    : { texto: 'Indisponível', estilo: ESTILOS.erro };
-            }
-            if (res.status === 'fallback') return { texto: 'Fallback Local', estilo: ESTILOS.fallback };
-            if (res.origem === 'nuvem') return { texto: `${res.httpStatus} OK`, estilo: ESTILOS.ok };
-            return {
-                texto: executionMode === 'real' ? 'Local (sem endpoint)' : 'Local (mock)',
-                estilo: ESTILOS.local
-            };
+        function descreverStatus(r) {
+            const textos = { 200: 'OK', 400: 'Bad Request', 403: 'Forbidden', 500: 'Internal Error', 502: 'Bad Gateway', 503: 'Unavailable', 504: 'Timeout' };
+            if (r.result.status === 'fallback') return `Fallback local · ${r.result.error}`;
+            if (r.httpStatus) return `HTTP ${r.httpStatus} ${textos[r.httpStatus] || ''}`.trim();
+            return r.result.erro === 'DEPENDENCIA' ? 'Não executada' : 'Sem requisição HTTP';
         }
 
-        // Atualizador genérico de card + inspetor JSON
-        function atualizarCard(cloud, res) {
+        // Atualizador genérico: badge, valores, aviso, "Tentar de novo", status HTTP e inspetor JSON
+        function atualizarCard(cloud, r) {
             const cfg = NUVENS[cloud];
-            const badge = document.getElementById(`badge${cfg.id}`);
-            const card = document.getElementById(`card${cfg.id}`);
-            const statusDisp = document.getElementById(`${cloud}StatusDisplay`);
+            const res = r.result;
+            const degradado = res.status === 'fallback';
+            const erro = res.status === 'error';
 
             document.getElementById(`lat${cfg.id}`).innerHTML =
-                `<i data-lucide="clock" class="w-3 h-3"></i> ${Number(res.latenciaMs) || 0} ms`;
-            setText(`type${cfg.id}`, res.origem === 'nuvem'
-                ? (res.coldStart ? 'Cold Start' : res.coldStart === false ? 'Warm Start' : cfg.id)
-                : 'Local');
+                `<i data-lucide="clock" class="w-3 h-3"></i> ${Number(r.lat) || 0} ms`;
+            setText(`type${cfg.id}`, erro || degradado
+                ? (erro ? cfg.id : 'Local')
+                : res.provider && res.provider.startsWith('Navegador') ? 'Mock' : `${capitalizar(tipoInicio(cloud, res))} Start`);
 
-            const { texto, estilo } = descreverBadge(res);
-            badge.className = BADGE_BASE + estilo;
-            badge.innerText = texto;
-
-            const temDados = res.status !== 'error' && res.data;
-            if (temDados) {
-                cfg.preencher(res.data);
+            const badge = document.getElementById(`badge${cfg.id}`);
+            if (erro) {
+                badge.className = BADGE_BASE + ESTILOS.erro;
+                badge.innerText = r.httpStatus === 400 ? '400 Inválido' : 'Indisponível';
+            } else if (degradado) {
+                badge.className = BADGE_BASE + ESTILOS.fallback;
+                badge.innerText = 'Fallback local';
             } else {
-                cfg.limpar();
+                badge.className = BADGE_BASE + ESTILOS.ok;
+                badge.innerText = r.httpStatus ? `${r.httpStatus} OK` : 'Mock OK';
             }
-            card.className = CARD_BASE + (res.status === 'error'
-                ? 'border-rose-500/30'
-                : res.status === 'fallback' ? 'border-amber-500/40' : cfg.bordaOk);
 
-            statusDisp.innerText = descreverStatusHttp(res);
-            statusDisp.className = 'font-bold ' + (res.status === 'error'
-                ? 'text-rose-400'
-                : res.status === 'fallback' ? 'text-amber-400' : res.origem === 'nuvem' ? 'text-emerald-400' : 'text-slate-400');
+            if (!erro && res.data) cfg.preencher(res.data); else cfg.limpar();
+            document.getElementById(`card${cfg.id}`).className = CARD_BASE +
+                (erro ? 'border-rose-500/30' : degradado ? 'border-amber-500/40' : cfg.bordaOk);
+
+            document.getElementById(`warn${cfg.id}`).classList.toggle('hidden', !degradado);
+            document.getElementById(`retry${cfg.id}`).classList.toggle('hidden', !degradado && !erro);
+
+            const statusDisp = document.getElementById(`${cloud}StatusDisplay`);
+            statusDisp.innerText = descreverStatus(r);
+            statusDisp.className = 'font-bold ' + (erro ? 'text-rose-400' : degradado ? 'text-amber-400' : 'text-emerald-400');
 
             document.getElementById(`${cloud}JsonDisplay`).innerText = JSON.stringify(res, null, 2);
             lucide.createIcons();
+        }
+
+        // ===== Painel de métricas (latência, cold/warm) + exportação CSV =====
+        function registrarMetrica(nome, requestId, result, httpStatus, lat) {
+            metrics.unshift({
+                hora: new Date().toLocaleTimeString('pt-BR'),
+                requestId,
+                nuvem: { aws: 'AWS', azure: 'Azure', gcp: 'GCP' }[nome],
+                resultado: result.status === 'fallback' ? 'fallback' : result.status === 'error' ? 'erro' : 'ok',
+                http: httpStatus ?? '',
+                latenciaMs: lat,
+                inicio: tipoInicio(nome, result),
+                modo: executionMode,
+                erro: result.error || result.erro || ''
+            });
+            renderMetricas();
+        }
+
+        function media(lista) {
+            return lista.length ? Math.round(lista.reduce((s, v) => s + v, 0) / lista.length) : null;
+        }
+
+        function escaparHTML(v) {
+            return String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function renderMetricas() {
+            const corpo = document.getElementById('metricsBody');
+            if (!corpo) return;
+            const cor = { ok: 'text-emerald-400', fallback: 'text-amber-400', erro: 'text-rose-400' };
+            const rotulo = { ok: 'OK', fallback: 'Fallback', erro: 'Erro' };
+            corpo.innerHTML = metrics.slice(0, 30).map(m => `
+                <tr class="border-t border-slate-800/60">
+                    <td class="py-1 pr-2 text-slate-500">${escaparHTML(m.hora)}</td>
+                    <td class="py-1 pr-2">${m.nuvem}</td>
+                    <td class="py-1 pr-2 ${cor[m.resultado]}">${rotulo[m.resultado]}${m.http ? ` (${escaparHTML(m.http)})` : ''}</td>
+                    <td class="py-1 pr-2 text-right">${m.latenciaMs} ms</td>
+                    <td class="py-1 pr-2 uppercase text-[10px]">${m.inicio}</td>
+                    <td class="py-1 text-slate-500">${escaparHTML(m.requestId)}</td>
+                </tr>`).join('') || '<tr><td colspan="6" class="py-2 text-slate-500">Nenhuma chamada ainda.</td></tr>';
+
+            // Médias só das respostas reais da nuvem (sem fallback)
+            const resumo = ['AWS', 'Azure', 'GCP'].map(n => {
+                const ok = metrics.filter(m => m.nuvem === n && m.resultado === 'ok' && m.modo === 'real');
+                const cold = media(ok.filter(m => m.inicio === 'cold').map(m => m.latenciaMs));
+                const warm = media(ok.filter(m => m.inicio === 'warm').map(m => m.latenciaMs));
+                return `<span class="mr-4"><b class="text-slate-300">${n}</b> cold ${cold ?? '--'} ms · warm ${warm ?? '--'} ms</span>`;
+            }).join('');
+            document.getElementById('metricsSummary').innerHTML = resumo;
+        }
+
+        function exportarCSV() {
+            const colunas = ['hora', 'requestId', 'nuvem', 'resultado', 'http', 'latenciaMs', 'inicio', 'modo', 'erro'];
+            const escapar = v => `"${String(v).replace(/"/g, '""')}"`;
+            const linhas = [colunas.join(';'), ...metrics.slice().reverse().map(m => colunas.map(c => escapar(m[c])).join(';'))];
+            const blob = new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `metricas-multicloud-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function limparMetricas() {
+            metrics.length = 0;
+            callCount.aws = callCount.azure = callCount.gcp = 0;
+            renderMetricas();
         }
 
         function initChart() {
@@ -949,10 +1094,10 @@
 
         // O gráfico usa o histórico devolvido pela AWS (ou pelo fallback). A curva IPCA aplica,
         // mês a mês, a mesma fórmula da GCP e só aparece quando a GCP (ou seu fallback) respondeu.
-        function updateChartData(awsRes, gcpRes, p) {
+        function updateChartData(awsRes, gcpRes, inp) {
             if (!chartInstance) return;
 
-            const historico = awsRes && awsRes.data && awsRes.data.historicoEvolucao;
+            const historico = awsRes && awsRes.status !== 'error' && awsRes.data && awsRes.data.historicoEvolucao;
             if (!historico) {
                 chartInstance.data.labels = [];
                 chartInstance.data.datasets.forEach(ds => { ds.data = []; });
@@ -965,11 +1110,11 @@
             const dataInvestido = [];
             const dataIPCA = [];
             const gcpOk = gcpRes && gcpRes.status !== 'error' && gcpRes.data;
-            const inflacaoMensal = Math.pow(1 + (p.taxaInflacao / 100), 1 / 12) - 1;
+            const inflacaoMensal = Math.pow(1 + (inp.taxaInflacao / 100), 1 / 12) - 1;
 
             for (let m = 0; m <= meses; m++) {
                 labels.push(`Mês ${m}`);
-                dataInvestido.push(arredondar(p.aporteInicial + p.aporteMensal * m));
+                dataInvestido.push(arredondar(inp.aporteInicial + inp.aporteMensal * m));
                 if (gcpOk) dataIPCA.push(arredondar(historico[m] / Math.pow(1 + inflacaoMensal, m)));
             }
 
@@ -981,4 +1126,5 @@
         }
     </script>
 </body>
+
 </html>
