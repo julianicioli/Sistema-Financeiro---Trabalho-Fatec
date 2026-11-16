@@ -1,0 +1,181 @@
+{
+  "medidoEm": "2026-11-16T01:57:05.813Z",
+  "esperaMinutos": 25,
+  "nWarm": 10,
+  "nuvens": [
+    {
+      "nuvem": "AWS",
+      "url": "https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/",
+      "cold": {
+        "latenciaMs": 524,
+        "status": 200
+      },
+      "warm": [
+        {
+          "latenciaMs": 27,
+          "status": 200
+        },
+        {
+          "latenciaMs": 25,
+          "status": 200
+        },
+        {
+          "latenciaMs": 34,
+          "status": 200
+        },
+        {
+          "latenciaMs": 48,
+          "status": 200
+        },
+        {
+          "latenciaMs": 28,
+          "status": 200
+        },
+        {
+          "latenciaMs": 49,
+          "status": 200
+        },
+        {
+          "latenciaMs": 28,
+          "status": 200
+        },
+        {
+          "latenciaMs": 24,
+          "status": 200
+        },
+        {
+          "latenciaMs": 29,
+          "status": 200
+        },
+        {
+          "latenciaMs": 25,
+          "status": 200
+        }
+      ],
+      "resumo": {
+        "coldMs": 524,
+        "warmMediaMs": 32,
+        "warmMedianaMs": 28,
+        "warmMinMs": 24,
+        "warmMaxMs": 49,
+        "warmOk": "10/10"
+      }
+    },
+    {
+      "nuvem": "Azure",
+      "url": "https://cambio-grupoa-fatec-aae6fbfdcnhrcnay.canadacentral-01.azurewebsites.net/api/cambio",
+      "cold": {
+        "latenciaMs": 1799,
+        "status": 200
+      },
+      "warm": [
+        {
+          "latenciaMs": 184,
+          "status": 200
+        },
+        {
+          "latenciaMs": 174,
+          "status": 200
+        },
+        {
+          "latenciaMs": 204,
+          "status": 200
+        },
+        {
+          "latenciaMs": 188,
+          "status": 200
+        },
+        {
+          "latenciaMs": 176,
+          "status": 200
+        },
+        {
+          "latenciaMs": 175,
+          "status": 200
+        },
+        {
+          "latenciaMs": 211,
+          "status": 200
+        },
+        {
+          "latenciaMs": 176,
+          "status": 200
+        },
+        {
+          "latenciaMs": 161,
+          "status": 200
+        },
+        {
+          "latenciaMs": 170,
+          "status": 200
+        }
+      ],
+      "resumo": {
+        "coldMs": 1799,
+        "warmMediaMs": 182,
+        "warmMedianaMs": 176,
+        "warmMinMs": 161,
+        "warmMaxMs": 211,
+        "warmOk": "10/10"
+      }
+    },
+    {
+      "nuvem": "GCP",
+      "url": "https://inflacao-20304353773.us-central1.run.app",
+      "cold": {
+        "latenciaMs": 424,
+        "status": 200
+      },
+      "warm": [
+        {
+          "latenciaMs": 160,
+          "status": 200
+        },
+        {
+          "latenciaMs": 159,
+          "status": 200
+        },
+        {
+          "latenciaMs": 159,
+          "status": 200
+        },
+        {
+          "latenciaMs": 163,
+          "status": 200
+        },
+        {
+          "latenciaMs": 161,
+          "status": 200
+        },
+        {
+          "latenciaMs": 159,
+          "status": 200
+        },
+        {
+          "latenciaMs": 161,
+          "status": 200
+        },
+        {
+          "latenciaMs": 159,
+          "status": 200
+        },
+        {
+          "latenciaMs": 158,
+          "status": 200
+        },
+        {
+          "latenciaMs": 159,
+          "status": 200
+        }
+      ],
+      "resumo": {
+        "coldMs": 424,
+        "warmMediaMs": 160,
+        "warmMedianaMs": 159,
+        "warmMinMs": 158,
+        "warmMaxMs": 163,
+        "warmOk": "10/10"
+      }
+    }
+  ]
+}

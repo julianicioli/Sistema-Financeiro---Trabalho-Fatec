@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Documentação Técnica — SaaS Financeiro Multicloud (Grupo A)</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root { --tinta:#1f2937; --suave:#4b5563; --linha:#d1d5db; --fundo:#f3f4f6;
+          --aws:#d97706; --azure:#0369a1; --gcp:#15803d; --vercel:#111827; --alerta:#b45309; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--tinta); font-size: 10.5pt; line-height: 1.45; margin: 0; background:#fff; }
+  h1 { font-size: 22pt; margin: 0 0 4mm; line-height: 1.15; }
+  h2 { font-size: 14pt; margin: 8mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 2px solid var(--tinta); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 5mm 0 2mm; break-after: avoid; }
+  p { margin: 0 0 2.5mm; }
+  ul { margin: 0 0 2.5mm; padding-left: 5mm; }
+  li { margin-bottom: 1mm; }
+  code, pre { font-family: Consolas, "Courier New", monospace; font-size: 8.8pt; }
+  pre { background: var(--fundo); border: 1px solid var(--linha); border-radius: 2mm; padding: 2.5mm 3mm; margin: 0 0 3mm; white-space: pre-wrap; word-break: break-word; break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 3.5mm; font-size: 9.5pt; break-inside: avoid; }
+  th, td { border: 1px solid var(--linha); padding: 1.6mm 2mm; text-align: left; vertical-align: top; }
+  th { background: var(--fundo); font-weight: 600; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .capa { min-height: 245mm; display: flex; flex-direction: column; justify-content: space-between; break-after: page; }
+  .capa .topo { font-size: 10pt; color: var(--suave); }
+  .capa .sub { font-size: 13pt; color: var(--suave); margin-bottom: 10mm; }
+  .capa .bloco { border-left: 3px solid var(--tinta); padding-left: 4mm; margin-bottom: 6mm; }
+  .capa .bloco b { display: inline-block; min-width: 34mm; }
+  .tag { display: inline-block; padding: 0.3mm 2mm; border-radius: 1mm; font-size: 8.5pt; font-weight: 600; color: #fff; }
+  .t-aws { background: var(--aws); } .t-azure { background: var(--azure); } .t-gcp { background: var(--gcp); } .t-vercel { background: var(--vercel); }
+  .nota { font-size: 9pt; color: var(--suave); }
+  .caixa { border: 1px solid var(--linha); border-left: 3px solid var(--alerta); border-radius: 1mm; padding: 2.5mm 3mm; margin: 0 0 3.5mm; background: #fffbeb; break-inside: avoid; }
+  .figura { text-align: center; margin: 2mm 0 4mm; break-inside: avoid; }
+  .figura svg { max-width: 100%; height: auto; }
+  .legenda { font-size: 9pt; color: var(--suave); margin-top: 1mm; }
+  .quebra { break-before: page; }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+</style>
+</head>
+<body>
+
+<section class="capa">
+  <div class="topo">Fatec Itapira "Ogari de Castro Pacheco" · Curso Superior de Tecnologia em Desenvolvimento de Software Multiplataforma (DSM)</div>
+  <div>
+    <h1>SaaS Financeiro Multicloud</h1>
+    <div class="sub">Análise e Projeção de Investimentos — Documentação Técnica<br>Atividade Prática 04 · Ecossistema SaaS Multicloud Integrado (Serverless &amp; Frontend)</div>
+    <div class="bloco">
+      <p><b>Disciplina</b>Computação em Nuvem I</p>
+      <p><b>Professor</b>Prof. Me. Reginaldo Donizeti Cândido</p>
+      <p><b>Grupo</b>Grupo A — SaaS Financeiro</p>
+    </div>
+    <div class="bloco">
+      <p><b>Integrantes</b>João Lucas Altafini</p>
+      <p><b></b>Julia Nicioli</p>
+      <p><b></b>João Gabriel Moimaz</p>
+      <p><b></b>Luan Trani</p>
+    </div>
+    <div class="bloco">
+      <p><b>Frontend (Vercel)</b>https://saas-financeiro-grupo-a.vercel.app</p>
+      <p><b>Repositório</b>https://github.com/julianicioli/Sistema-Financeiro---Trabalho-Fatec</p>
+    </div>
+  </div>
+  <div class="topo">Itapira, novembro de 2026</div>
+</section>
+
+<h2>1. Arquitetura da solução</h2>
+<p>O usuário acessa um frontend estático (HTML5, Tailwind CSS e JavaScript com <code>fetch</code>) hospedado na <b>Vercel</b>. Ao executar uma simulação, o navegador orquestra três funções serverless, cada uma em um provedor de nuvem pública. A AWS é chamada primeiro (cascata) porque o montante que ela calcula alimenta as outras duas, que são chamadas ao mesmo tempo (paralelo, com <code>Promise.allSettled</code>). Não há máquinas virtuais nem contêineres gerenciados pelo grupo: só PaaS e FaaS.</p>
+
+<div class="figura">
+<svg viewBox="0 0 920 330" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="12">
+  <defs>
+    <marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#374151"/></marker>
+  </defs>
+  <!-- Usuário -->
+  <rect x="10" y="135" width="105" height="60" rx="8" fill="#f3f4f6" stroke="#6b7280"/>
+  <text x="62" y="160" text-anchor="middle" font-weight="600">Usuário</text>
+  <text x="62" y="178" text-anchor="middle" fill="#4b5563" font-size="11">navegador</text>
+  <!-- Vercel -->
+  <rect x="175" y="110" width="170" height="110" rx="8" fill="#ffffff" stroke="#111827" stroke-width="1.6"/>
+  <text x="260" y="134" text-anchor="middle" font-weight="700">Frontend estático</text>
+  <text x="260" y="152" text-anchor="middle" fill="#4b5563" font-size="11">Vercel · frontend-app/index.html</text>
+  <text x="260" y="172" text-anchor="middle" fill="#4b5563" font-size="11">orquestração · timeout 4 s</text>
+  <text x="260" y="189" text-anchor="middle" fill="#4b5563" font-size="11">fallback local por módulo</text>
+  <text x="260" y="206" text-anchor="middle" fill="#4b5563" font-size="11">X-Request-Id comum</text>
+  <line x1="115" y1="165" x2="173" y2="165" stroke="#374151" stroke-width="1.6" marker-end="url(#seta)"/>
+  <text x="144" y="157" text-anchor="middle" font-size="10" fill="#4b5563">HTTPS</text>
+  <!-- AWS -->
+  <rect x="470" y="12" width="280" height="80" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.6"/>
+  <text x="610" y="36" text-anchor="middle" font-weight="700" fill="#92400e">AWS Lambda · Function URL</text>
+  <text x="610" y="55" text-anchor="middle" font-size="11">Calculadora de Juros Compostos</text>
+  <text x="610" y="73" text-anchor="middle" font-size="11" fill="#4b5563">sa-east-1 (São Paulo) · Node.js 22</text>
+  <!-- Azure -->
+  <rect x="470" y="125" width="280" height="80" rx="8" fill="#f0f9ff" stroke="#0369a1" stroke-width="1.6"/>
+  <text x="610" y="149" text-anchor="middle" font-weight="700" fill="#075985">Azure Functions · Flex Consumption</text>
+  <text x="610" y="168" text-anchor="middle" font-size="11">Conversor de Câmbio Internacional</text>
+  <text x="610" y="186" text-anchor="middle" font-size="11" fill="#4b5563">canadacentral · Node.js 22 · HTTP Trigger</text>
+  <!-- GCP -->
+  <rect x="470" y="238" width="280" height="80" rx="8" fill="#f0fdf4" stroke="#15803d" stroke-width="1.6"/>
+  <text x="610" y="262" text-anchor="middle" font-weight="700" fill="#166534">Google Cloud Run functions</text>
+  <text x="610" y="281" text-anchor="middle" font-size="11">Projetor de Inflação e Poder de Compra</text>
+  <text x="610" y="299" text-anchor="middle" font-size="11" fill="#4b5563">us-central1 · Node.js 22 · HTTP público</text>
+  <!-- setas -->
+  <path d="M345,135 C400,135 410,52 468,52" fill="none" stroke="#d97706" stroke-width="1.8" marker-end="url(#seta)"/>
+  <text x="395" y="78" font-size="11" fill="#92400e" font-weight="600">1 · cascata</text>
+  <path d="M345,165 L468,165" fill="none" stroke="#0369a1" stroke-width="1.8" marker-end="url(#seta)"/>
+  <path d="M345,195 C400,195 410,278 468,278" fill="none" stroke="#15803d" stroke-width="1.8" marker-end="url(#seta)"/>
+  <text x="372" y="158" font-size="11" fill="#075985" font-weight="600">2 · paralelo</text>
+  <text x="372" y="250" font-size="11" fill="#166534" font-weight="600">2 · paralelo</text>
+  <text x="395" y="102" font-size="10" fill="#4b5563">montanteBruto</text>
+  <!-- APIs câmbio -->
+  <rect x="785" y="139" width="128" height="52" rx="6" fill="#ffffff" stroke="#9ca3af" stroke-dasharray="4 3"/>
+  <text x="849" y="160" text-anchor="middle" font-size="10.5">AwesomeAPI /</text>
+  <text x="849" y="176" text-anchor="middle" font-size="10.5">ExchangeRate-API</text>
+  <line x1="750" y1="165" x2="783" y2="165" stroke="#9ca3af" stroke-dasharray="4 3" marker-end="url(#seta)"/>
+</svg>
+<div class="legenda">Figura 1 — Usuário → hospedagem do frontend → requisições HTTP/JSON → AWS (cascata) → Azure e GCP (paralelo).</div>
+</div>
+
+<table>
+  <tr><th>Plataforma</th><th>Função executada</th><th>Entrada</th><th>Saída</th></tr>
+  <tr><td><span class="tag t-aws">AWS Lambda</span></td><td>Calculadora de Juros Compostos</td><td>aporte inicial e mensal, taxa (a.m. ou a.a.), meses</td><td>montante bruto, total investido, rendimentos, série mês a mês</td></tr>
+  <tr><td><span class="tag t-azure">Azure Functions</span></td><td>Conversor de Câmbio Internacional</td><td>montante em BRL (vindo da AWS)</td><td>valor em USD e EUR, cotação e fonte usada</td></tr>
+  <tr><td><span class="tag t-gcp">Google Cloud</span></td><td>Projetor de Inflação e Poder de Compra</td><td>montante bruto, total investido, IPCA anual, meses</td><td>montante real, ganho real, perda de poder de compra</td></tr>
+  <tr><td><span class="tag t-vercel">Vercel</span></td><td>Frontend (SPA / dashboard)</td><td>dados do usuário</td><td>formulário, orquestração, cards por nuvem, gráfico e métricas</td></tr>
+</table>
+
+<h3>Resiliência (graceful degradation)</h3>
+<ul>
+  <li>Cada chamada tem <b>tempo limite de 4 s</b> (<code>AbortController</code>). Erro HTTP, falha de rede/CORS ou timeout ativam o <b>fallback local</b> só daquele módulo: o card mostra <i>"Serviço Temporariamente Indisponível"</i>, usa a mesma fórmula da função no navegador e exibe o botão <b>Tentar de novo</b>, que refaz apenas a chamada que falhou.</li>
+  <li>Se a AWS falhar, o montante é calculado localmente e Azure e GCP continuam funcionando; Azure e GCP não dependem uma da outra.</li>
+  <li>Os interruptores <b>Simular falha</b> enviam <code>?simularErro=true</code>: a própria nuvem responde <b>HTTP 500</b>, que aparece no console de logs do provedor durante a demonstração.</li>
+  <li>Um <b>X-Request-Id</b> comum às três chamadas aparece nas respostas e nos logs, permitindo localizar a mesma simulação em AWS, Azure e GCP.</li>
+</ul>
+
+<h3>Segurança</h3>
+<ul>
+  <li>O frontend só conhece as três URLs públicas; não há chave de API, segredo ou credencial no código nem no GitHub. As APIs de câmbio são públicas e chamadas de dentro da função Azure.</li>
+  <li>CORS restrito ao domínio da Vercel (e <code>localhost:5173</code> para desenvolvimento) na AWS e na Azure; na GCP o CORS é tratado no código.</li>
+  <li>As três funções validam a entrada e respondem 400 com a lista de campos inválidos.</li>
+</ul>
+
+<h2>2. Especificação dos endpoints</h2>
+<p>As três funções recebem e devolvem <code>Content-Type: application/json</code>, aceitam <code>POST</code> (e <code>OPTIONS</code> de CORS) e respondem <b>200</b> (sucesso), <b>400</b> (parâmetros inválidos) ou <b>500</b> (falha interna, inclusive a simulada com <code>?simularErro=true</code>). Os exemplos usam o cenário do planejamento: R$ 1.000 iniciais, R$ 200/mês, 12% a.a., 24 meses e IPCA de 4,5% a.a.</p>
+
+<table>
+  <tr><th>Função</th><th>Método e URL pública</th><th>Exposição</th></tr>
+  <tr><td>Juros Compostos</td><td><code>POST https://hfzju3c5szs6sminjuri4tpgwi0mzgnh.lambda-url.sa-east-1.on.aws/</code></td><td>Lambda Function URL, auth <code>NONE</code></td></tr>
+  <tr><td>Câmbio</td><td><code>POST https://cambio-grupoa-fatec-aae6fbfdcnhrcnay.canadacentral-01.azurewebsites.net/api/cambio</code></td><td>HTTP Trigger, <code>authLevel: anonymous</code></td></tr>
+  <tr><td>Inflação</td><td><code>POST https://inflacao-20304353773.us-central1.run.app</code></td><td>gatilho HTTP, invocação não autenticada</td></tr>
+</table>
+
+<h3>2.1 AWS Lambda — Calculadora de Juros Compostos</h3>
+<p>M = P(1+i)<sup>n</sup> + A·[(1+i)<sup>n</sup> − 1]/i, com aporte mensal no fim de cada mês. Com <code>tipoTaxa: "anual"</code>, i = (1 + a)<sup>1/12</sup> − 1.</p>
+<div class="duas">
+<pre>// Request
+{ "aporteInicial": 1000,
+  "aporteMensal": 200,
+  "taxaJuros": 12,
+  "tipoTaxa": "anual",
+  "tempoMeses": 24 }</pre>
+<pre>// Response 200
+{ "status": "success",
+  "provider": "AWS Lambda (sa-east-1)",
+  "data": { "montanteBruto": 6616.52,
+    "totalInvestido": 5800,
+    "totalRendimentos": 816.52,
+    "taxaMensal": 0.9489,
+    "historicoEvolucao": [1000, 1209.49, …, 6616.52] },
+  "requestId": "a1b2c3" }</pre>
+</div>
+<p class="nota">400: aportes negativos ou ambos zerados, taxa fora de 0–100, meses fora de 1–600, tipoTaxa diferente de mensal/anual.</p>
+
+<h3>2.2 Azure Functions — Conversor de Câmbio Internacional</h3>
+<p>Com <code>modo: "api"</code> (padrão) usa a AwesomeAPI; se ela falhar, a ExchangeRate-API; se ambas falharem, ou com <code>modo: "fixa"</code>, a tabela fixa (USD 5,60; EUR 6,10). O campo <code>fonte</code> informa a origem da cotação.</p>
+<div class="duas">
+<pre>// Request
+{ "montanteBRL": 6616.52,
+  "moedas": ["USD", "EUR"],
+  "modo": "api" }</pre>
+<pre>// Response 200
+{ "status": "success",
+  "provider": "Azure Functions (canadacentral)",
+  "data": { "valorBRL": 6616.52,
+    "valorUSD": 1168.09, "valorEUR": 1058.64,
+    "cotacaoUSD": 5.6644, "cotacaoEUR": 6.25,
+    "fonte": "exchangerate-api" },
+  "requestId": "a1b2c3" }</pre>
+</div>
+<p class="nota">400: montanteBRL ausente ou ≤ 0, moeda fora de USD/EUR, modo desconhecido, JSON inválido.</p>
+
+<h3>2.3 Google Cloud Run functions — Projetor de Inflação e Poder de Compra</h3>
+<p>M<sub>real</sub> = M / (1 + π)<sup>n/12</sup>; ganho real = M<sub>real</sub> − total investido; perda de poder de compra = M − M<sub>real</sub>.</p>
+<div class="duas">
+<pre>// Request
+{ "montanteBruto": 6616.52,
+  "totalInvestido": 5800,
+  "taxaInflacao": 4.5,
+  "tempoMeses": 24 }</pre>
+<pre>// Response 200
+{ "status": "success",
+  "provider": "Google Cloud Functions (us-central1)",
+  "data": { "montanteReal": 6058.95,
+    "perdaPoderCompra": 557.57,
+    "ganhoRealLiquido": 258.95,
+    "taxaInflacaoAcumulada": 9.2 },
+  "requestId": "a1b2c3" }</pre>
+</div>
+<p class="nota">400: montanteBruto ausente ou ≤ 0, totalInvestido &lt; 0, taxaInflacao fora de −10–100, tempoMeses ausente ou fora de 1–600.</p>
+
+<h3>2.4 Respostas de erro (iguais nas três)</h3>
+<div class="duas">
+<pre>// 400
+{ "status": "error", "erro": "VALIDACAO",
+  "detalhes": [ { "campo": "tempoMeses",
+    "mensagem": "deve ser um inteiro entre 1 e 600" } ],
+  "requestId": "a1b2c3" }</pre>
+<pre>// 500 (ex.: ?simularErro=true)
+{ "status": "error", "erro": "INTERNO",
+  "mensagem": "Falha simulada (simularErro=true)",
+  "requestId": "a1b2c3" }</pre>
+</div>
+
+<h2>3. Análise de métricas e desempenho</h2>
+<p><b>Metodologia.</b> As três funções ficaram {{ESPERA}} minutos sem receber chamadas. Em seguida, um script Node.js (o mesmo <code>fetch</code> usado pelo navegador) fez a 1ª chamada às três ao mesmo tempo (<b>cold start</b>) e depois {{NWARM}} chamadas seguidas a cada uma, com 1 s de intervalo (<b>warm start</b>). A latência é medida no cliente, a partir de uma conexão de internet no Brasil (região de Campinas/SP), e inclui rede, TLS, plataforma e execução. Medição feita em {{DATA}}.</p>
+
+<table>
+  <tr><th>Provedor (região)</th><th class="num">Cold start</th><th class="num">Warm — mediana</th><th class="num">Warm — média</th><th class="num">Warm — mín / máx</th><th class="num">Cold ÷ warm</th><th class="num">Respostas 200</th></tr>
+  {{LINHAS}}
+</table>
+
+<div class="figura">
+{{GRAFICO}}
+<div class="legenda">Figura 2 — Latência medida no cliente: 1ª chamada após ociosidade (cold) e mediana das chamadas seguintes (warm).</div>
+</div>
+
+<h3>Leitura dos resultados</h3>
+{{ANALISE}}
+<ul>
+  <li><b>Distância de rede:</b> a Lambda está em São Paulo, enquanto a função Azure está no Canadá e a GCP em Iowa (EUA). Parte da diferença de warm start é só o caminho de rede até cada região, não a velocidade do provedor.</li>
+  <li><b>Por que existe cold start:</b> após um período sem tráfego as plataformas desligam as instâncias (escala para zero). A 1ª chamada precisa iniciar o ambiente Node.js e carregar o código; as seguintes reaproveitam a instância já pronta.</li>
+  {{IMPACTO}}
+  <li><b>Como reduzir:</b> Provisioned Concurrency (AWS), instâncias "sempre prontas" do Flex Consumption (Azure) e mínimo de instâncias &gt; 0 (Cloud Run) eliminam o cold start, mas passam a cobrar pelo tempo ocioso.</li>
+</ul>
+<p class="nota">O painel "Métricas de Latência" do frontend registra cada chamada feita pelo navegador (cold/warm, HTTP, Request-Id) e exporta CSV, permitindo repetir esta medição durante a apresentação. Os dados brutos desta tabela estão em <code>docs/metricas-latencia.json</code> no repositório.</p>
+
+<h2 class="quebra">4. Relato técnico comparativo</h2>
+<p>Comparação feita a partir do que o grupo efetivamente configurou em cada console durante o deploy.</p>
+
+<table>
+  <tr><th style="width:16%">Aspecto</th><th style="width:28%"><span class="tag t-aws">AWS</span></th><th style="width:28%"><span class="tag t-azure">Azure</span></th><th style="width:28%"><span class="tag t-gcp">GCP</span></th></tr>
+  <tr><td><b>IAM / permissões</b></td>
+      <td>É preciso criar uma role de execução (trust policy para <code>lambda.amazonaws.com</code> + <code>AWSLambdaBasicExecutionRole</code>). A Function URL pública exige <b>duas</b> permissões na política da função: <code>lambda:InvokeFunctionUrl</code> e <code>lambda:InvokeFunction</code>. A primeira URL do grupo respondia <b>403 AccessDenied</b> justamente por falta delas.</td>
+      <td>A assinatura <i>Azure for Students</i> tem uma política que só permite algumas regiões (Brazil South foi recusada) e <b>cota zero</b> para o plano de Consumo clássico (Y1). Foi preciso usar o plano <b>Flex Consumption</b> em Canada Central. O acesso público é definido no código (<code>authLevel: 'anonymous'</code>).</td>
+      <td>Exige vincular faturamento ao projeto e ativar as APIs (Cloud Run Admin, Cloud Build). No 1º deploy o console pediu para conceder <code>roles/run.builder</code> à conta de serviço padrão. O acesso público é uma opção simples na criação ("Permitir acesso público").</td></tr>
+  <tr><td><b>CORS</b></td>
+      <td>Configurado na própria Function URL (origens, métodos e headers). Quando o código também enviava <code>Access-Control-Allow-Origin</code>, a resposta saía com o header <b>duplicado</b> e o navegador bloqueava; a solução foi deixar o CORS só na Function URL.</td>
+      <td>A plataforma intercepta o preflight <code>OPTIONS</code>: sem origens cadastradas ele volta 204 <b>sem</b> headers de CORS, mesmo com o código tratando CORS. Foi necessário cadastrar as origens no Function App (<code>az functionapp cors add</code>).</td>
+      <td>Tratado no código da função (headers e resposta 204 ao <code>OPTIONS</code>); funcionou sem configuração extra na plataforma.</td></tr>
+  <tr><td><b>Logs e monitoramento</b></td>
+      <td>CloudWatch Logs (grupo <code>/aws/lambda/juros-compostos</code>), com a duração faturada e o Init Duration de cada cold start; métricas no próprio console da Lambda.</td>
+      <td>Application Insights criado junto com o Function App: logs, falhas, dependências (chamadas às APIs de câmbio) e live metrics.</td>
+      <td>Aba Observabilidade/Registros do Cloud Run e Logs Explorer, com métricas de requisições, latência e instâncias.</td></tr>
+  <tr><td><b>Processo de deploy</b></td>
+      <td>Rápido pelo CloudShell: zip do <code>index.mjs</code>, <code>create-function</code>, <code>create-function-url-config</code> e <code>add-permission</code>. Atualizações com <code>update-function-code</code> em segundos.</td>
+      <td>O mais trabalhoso: o Flex Consumption não tem editor no portal; o deploy foi um zip com <code>node_modules</code> enviado pelo Azure Cloud Shell (<code>az functionapp deployment source config-zip</code>). O arquivo <code>host.json</code> original tinha um erro de digitação que impediria a função de iniciar.</td>
+      <td>O mais simples: editor in-line no console (index.js + package.json + ponto de entrada) e "Salvar e reimplantar"; build automático em ~1 min.</td></tr>
+  <tr><td><b>Observações</b></td>
+      <td>Região de São Paulo disponível, o que deu a menor latência de rede.</td>
+      <td>A AwesomeAPI respondia <b>429</b> para os IPs compartilhados da Azure; adicionamos a ExchangeRate-API como segunda fonte antes da tabela fixa.</td>
+      <td>Crédito de teste (R$ 1.830 por 90 dias) e limite de 2 instâncias configurado para evitar custo.</td></tr>
+</table>
+
+<h3>Facilidades e dificuldades</h3>
+<ul>
+  <li><b>Mais fácil para começar:</b> GCP, pelo editor in-line e pela opção direta de acesso público. <b>Mais controle:</b> AWS, com permissões explícitas e CORS declarativo na Function URL. <b>Mais restrições de conta:</b> Azure for Students (regiões e cotas), o que levou a mudar o plano de hospedagem.</li>
+  <li><b>CORS</b> foi o ponto que mais exigiu teste nas três nuvens: cada uma trata o preflight de um jeito (Function URL, plataforma do App Service, código). Testar com <code>curl -X OPTIONS</code> antes de ligar o frontend evitou erros difíceis de ver no navegador.</li>
+  <li><b>Contrato único</b> (mesmo formato de erro, <code>simularErro</code> e <code>X-Request-Id</code>) simplificou o frontend e a demonstração de resiliência.</li>
+</ul>
+
+<h2>5. FinOps — estimativa para 1 milhão de requisições por mês</h2>
+<p>Premissas: 1.000.000 de execuções por mês em cada função, duração média de 100 ms, memória configurada (AWS 256 MB, Azure 512 MB, GCP 512 MiB / 1 vCPU) e respostas de ~1 KB. Valores aproximados em dólar a partir das tabelas públicas de preço sob demanda; conferir nas calculadoras oficiais antes de usar em orçamento.</p>
+<table>
+  <tr><th>Provedor</th><th>Consumo estimado</th><th class="num">Com camada gratuita</th><th class="num">Sem camada gratuita</th></tr>
+  <tr><td>AWS Lambda</td><td>1 M requisições · 25 mil GB-s</td><td class="num">≈ US$ 0</td><td class="num">≈ US$ 0,62</td></tr>
+  <tr><td>Azure Functions (Flex)</td><td>1 M execuções · 50 mil GB-s</td><td class="num">≈ US$ 0,30</td><td class="num">≈ US$ 1,70</td></tr>
+  <tr><td>Google Cloud Run functions</td><td>1 M requisições · 100 mil vCPU-s · 50 mil GiB-s</td><td class="num">≈ US$ 0</td><td class="num">≈ US$ 2,90</td></tr>
+  <tr><td>Vercel (frontend estático)</td><td>~1 GB de tráfego</td><td class="num">US$ 0 (Hobby)</td><td class="num">US$ 20/mês (Pro, uso comercial)</td></tr>
+</table>
+<ul>
+  <li>Para este volume o custo das funções é baixo; o que mais pesa num SaaS real é <b>log/monitoramento</b> (CloudWatch, Application Insights) e o plano comercial da hospedagem.</li>
+  <li>Eliminar cold start com instâncias sempre ligadas mudaria a conta: passa-se a pagar pelo tempo ocioso 24 h por dia.</li>
+  <li><b>Desativação após a avaliação:</b> excluir a função <code>juros-compostos</code> e a role <code>juros-compostos-role</code> (AWS), o grupo de recursos <code>rg-saas-financeiro</code> (Azure), o serviço <code>inflacao</code> do projeto <code>saas-financeiro-grupo-a</code> (GCP) e o projeto da Vercel.</li>
+</ul>
+
+</body>
+</html>
