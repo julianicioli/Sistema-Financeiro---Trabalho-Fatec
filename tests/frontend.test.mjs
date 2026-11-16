@@ -88,6 +88,7 @@ test('modo real: as três nuvens respondem 200 e os valores batem com as funçõ
         assert.equal(visivel(`retry${id}`), false, id);
     }
     assert.equal(texto('awsStatusDisplay'), 'HTTP 200 OK');
+    assert.equal($('fonteCambio').textContent, 'Tabela fixa (reserva)'); // APIs de cotação simuladas fora do ar
 
     const aws = await awsEsperado();
     assert.equal(texto('valMontanteBruto'), brl(aws.montanteBruto));
@@ -104,6 +105,23 @@ test('modo real: as três nuvens respondem 200 e os valores batem com as funçõ
     assert.equal(investido.data.at(-1), 22000);
     assert.ok(Math.abs(ipca.data.at(-1) - json('gcp').data.montanteReal) <= 0.01);
     assert.equal($('btnRun').disabled, false);
+});
+
+test('card da Azure mostra a fonte da cotação com a atribuição da ExchangeRate-API', async () => {
+    ROTAS['azure.test'] = (req) => invocarAzure({ ...req, apis: { exchangerate: { USD: 5, EUR: 6 } } });
+    try {
+        await rodar();
+    } finally {
+        ROTAS['azure.test'] = invocarAzure;
+    }
+    const link = $('fonteCambio').querySelector('a');
+    assert.equal(link.textContent, 'Rates By Exchange Rate API');
+    assert.equal(link.href, 'https://www.exchangerate-api.com/');
+    assert.equal(texto('valCambio'), '1 USD = R$ 5.00');
+
+    $('failAzure').checked = true; // fallback local usa a tabela fixa
+    await rodar();
+    assert.equal($('fonteCambio').textContent, 'Tabela fixa (reserva)');
 });
 
 test('X-Request-Id: AWS recebe no corpo; Azure e GCP no header; o mesmo id nas três', async () => {

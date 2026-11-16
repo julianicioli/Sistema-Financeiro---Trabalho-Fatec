@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { invocarAWS, invocarAzure, invocarGCP, azureRegistrada } from './helpers.mjs';
+import { invocarAWS, invocarAzure, invocarGCP, azureRegistrada, cambio, simularApisCotacao } from './helpers.mjs';
 
 const ENTRADA_AWS = { aporteInicial: 10000, aporteMensal: 500, taxaJuros: 0.8, tempoMeses: 24 };
 
@@ -100,15 +100,41 @@ test('Azure: registra POST /api/cambio anônimo', () => {
 });
 
 test('Azure: usa cotação ao vivo da AwesomeAPI quando disponível', async () => {
-    const r = await invocarAzure({ body: { montanteBRL: 55 }, cotacaoAoVivo: { USD: 5, EUR: 5.5 } });
+    const r = await invocarAzure({ body: { montanteBRL: 55 }, apis: { awesome: { USD: 5, EUR: 5.5 } } });
     assert.equal(r.status, 200);
     assert.equal(r.body.data.fonte, 'awesomeapi');
     assert.equal(r.body.data.valorUSD, 11);
     assert.equal(r.body.data.valorEUR, 10);
-    assert.match(r.chamadasApi[0], /USD-BRL,EUR-BRL$/);
 });
 
-test('Azure: cai na tabela fixa se a AwesomeAPI falhar', async () => {
+test('Azure: AwesomeAPI com 429 -> usa a ExchangeRate-API', async () => {
+    const r = await invocarAzure({ body: { montanteBRL: 55 }, apis: { exchangerate: { USD: 5, EUR: 5.5 } } });
+    assert.equal(r.body.data.fonte, 'exchangerate-api');
+    assert.equal(r.body.data.cotacaoUSD, 5);
+    assert.equal(r.body.data.valorEUR, 10);
+});
+
+test('Azure: consulta as duas APIs em paralelo e fica com a primeira que responder', async () => {
+    const inicio = Date.now();
+    const r = await invocarAzure({
+        body: { montanteBRL: 55 },
+        apis: { awesome: { USD: 9, EUR: 9 }, exchangerate: { USD: 5, EUR: 5.5 }, atrasoMs: { awesome: 1000 } }
+    });
+    const duracao = Date.now() - inicio;
+    assert.deepEqual([...r.chamadasApi].sort(), ['awesome', 'exchangerate']); // as duas disparadas juntas
+    assert.equal(r.body.data.fonte, 'exchangerate-api');                         // a rápida venceu
+    assert.ok(duracao < 800, `esperou a API lenta: ${duracao} ms`);
+});
+
+test('Azure: API lenta (timeout) não atrasa além de ~1,5 s', async () => {
+    const inicio = Date.now();
+    const r = await invocarAzure({ body: { montanteBRL: 56 }, apis: { atrasoMs: { awesome: 5000, exchangerate: 5000 } } });
+    const duracao = Date.now() - inicio;
+    assert.equal(r.body.data.fonte, 'tabela-fixa');
+    assert.ok(duracao < 2000, `demorou ${duracao} ms`); // antes, em sequência, eram até 3 s
+});
+
+test('Azure: cai na tabela fixa se as duas APIs falharem', async () => {
     const r = await invocarAzure({ body: { montanteBRL: 5600 } });
     assert.equal(r.status, 200);
     assert.equal(r.body.data.fonte, 'tabela-fixa');
@@ -116,8 +142,58 @@ test('Azure: cai na tabela fixa se a AwesomeAPI falhar', async () => {
     assert.equal(r.body.data.valorEUR, Math.round(5600 / 6.10 * 100) / 100);
 });
 
+test('Azure: cotação fica em cache e a 2ª requisição não consulta as APIs', async () => {
+    const primeira = await invocarAzure({ body: { montanteBRL: 55 }, apis: { awesome: { USD: 5, EUR: 5.5 } } });
+    assert.equal(primeira.chamadasApi.length, 2);
+    const segunda = await invocarAzure({ body: { montanteBRL: 110, moedas: ['EUR'] }, manterCache: true }); // APIs "fora do ar"
+    assert.equal(segunda.chamadasApi.length, 0);
+    assert.equal(segunda.body.data.fonte, 'awesomeapi');
+    assert.equal(segunda.body.data.valorEUR, 20);
+    assert.equal(segunda.body.data.valorUSD, null); // só a moeda pedida
+});
+
+test('Azure: cache expira em 5 minutos e falha de API não é guardada', async () => {
+    const { buscarCotacoes, limparCacheCotacoes, CACHE_TTL_MS } = cambio;
+    limparCacheCotacoes();
+    let sim = simularApisCotacao({ exchangerate: { USD: 5, EUR: 6 } });
+    try {
+        const t0 = 1_000_000;
+        assert.equal((await buscarCotacoes(['USD'], t0)).emCache, false);
+        assert.equal((await buscarCotacoes(['USD'], t0 + CACHE_TTL_MS - 1)).emCache, true);
+        const expirada = await buscarCotacoes(['USD'], t0 + CACHE_TTL_MS);
+        assert.equal(expirada.emCache, false);
+        assert.equal(sim.chamadas.length, 4); // 2 consultas x 2 APIs
+    } finally {
+        sim.restaurar();
+    }
+
+    limparCacheCotacoes();
+    sim = simularApisCotacao(); // tudo fora do ar
+    try {
+        assert.equal(await buscarCotacoes(['USD']), null);
+        assert.equal(await buscarCotacoes(['USD']), null);
+        assert.equal(sim.chamadas.length, 4); // tentou de novo: falha não fica em cache
+    } finally {
+        sim.restaurar();
+    }
+});
+
+test('Azure: requisições simultâneas compartilham uma única consulta às APIs', async () => {
+    const { buscarCotacoes, limparCacheCotacoes } = cambio;
+    limparCacheCotacoes();
+    const sim = simularApisCotacao({ awesome: { USD: 5, EUR: 6 }, atrasoMs: { awesome: 50 } });
+    try {
+        const resultados = await Promise.all([buscarCotacoes(['USD']), buscarCotacoes(['EUR']), buscarCotacoes(['USD', 'EUR'])]);
+        assert.equal(sim.chamadas.length, 2); // uma por API, não seis
+        assert.deepEqual(resultados.map(r => r.fonte), ['awesomeapi', 'awesomeapi', 'awesomeapi']);
+        assert.deepEqual(resultados[2].cotacoes, { USD: 5, EUR: 6 });
+    } finally {
+        sim.restaurar();
+    }
+});
+
 test('Azure: modo "fixa" nem consulta a API', async () => {
-    const r = await invocarAzure({ body: { montanteBRL: 56, modo: 'fixa' }, cotacaoAoVivo: { USD: 1, EUR: 1 } });
+    const r = await invocarAzure({ body: { montanteBRL: 56, modo: 'fixa' }, apis: { awesome: { USD: 1, EUR: 1 } } });
     assert.equal(r.body.data.valorUSD, 10);
     assert.equal(r.chamadasApi.length, 0);
 });

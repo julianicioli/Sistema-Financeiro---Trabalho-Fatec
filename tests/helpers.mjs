@@ -17,20 +17,63 @@ az.app.http = appHttpOriginal;
 export const azureRegistrada = azureRegistro;
 
 export async function invocarAWS({ method = 'POST', body, query, headers = {} } = {}) {
-    const r = await awsHandler({
-        requestContext: { http: { method } },
-        headers,
-        queryStringParameters: query,
-        body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body))
-    });
+    const erroOriginal = console.error;
+    console.error = () => {}; // silencia o log esperado da falha simulada
+    let r;
+    try {
+        r = await awsHandler({
+            requestContext: { http: { method } },
+            headers,
+            queryStringParameters: query,
+            body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body))
+        });
+    } finally {
+        console.error = erroOriginal;
+    }
     return { status: r.statusCode, headers: r.headers, body: r.body ? JSON.parse(r.body) : r.body };
 }
 
+export const cambio = await import('../azure-functions/src/cambio.js');
+
 /**
- * Invoca a Azure Function. `cotacaoAoVivo` simula a AwesomeAPI:
- *  null (padrão) = API fora do ar -> a função usa a tabela fixa; objeto { USD, EUR } = cotações devolvidas.
+ * Simula as duas APIs de cotação no fetch global. Cada uma recebe { USD, EUR } (cotação em R$)
+ * ou null (fora do ar); `atrasoMs` atrasa a resposta de cada uma.
+ * Devolve { chamadas, restaurar }.
  */
-export async function invocarAzure({ method = 'POST', body, query = {}, headers = {}, cotacaoAoVivo = null } = {}) {
+export function simularApisCotacao({ awesome = null, exchangerate = null, atrasoMs = {} } = {}) {
+    const fetchOriginal = globalThis.fetch;
+    const chamadas = [];
+    globalThis.fetch = async (alvo, opcoes = {}) => {
+        const url = String(alvo);
+        const api = url.includes('awesomeapi') ? 'awesome' : url.includes('er-api') ? 'exchangerate' : 'outra';
+        chamadas.push(api);
+        if (atrasoMs[api]) {
+            // Como o fetch real: o AbortSignal (timeout) interrompe a espera
+            await new Promise((resolve, reject) => {
+                const id = setTimeout(resolve, atrasoMs[api]);
+                opcoes.signal?.addEventListener('abort', () => {
+                    clearTimeout(id);
+                    reject(opcoes.signal.reason);
+                }, { once: true });
+            });
+        }
+        if (api === 'awesome' && awesome) {
+            return { ok: true, json: async () => Object.fromEntries(Object.entries(awesome).map(([m, c]) => [`${m}BRL`, { bid: String(c) }])) };
+        }
+        if (api === 'exchangerate' && exchangerate) {
+            return { ok: true, json: async () => ({ result: 'success', rates: Object.fromEntries(Object.entries(exchangerate).map(([m, c]) => [m, 1 / c])) }) };
+        }
+        if (api === 'awesome') return { ok: false, status: 429, json: async () => ({}) };
+        throw new TypeError('fetch failed');
+    };
+    return { chamadas, restaurar: () => { globalThis.fetch = fetchOriginal; } };
+}
+
+/**
+ * Invoca a Azure Function. `apis` simula as APIs de cotação (padrão: as duas fora do ar -> tabela fixa).
+ * O cache de cotações é limpo antes de cada chamada, a menos que `manterCache` seja true.
+ */
+export async function invocarAzure({ method = 'POST', body, query = {}, headers = {}, apis = {}, manterCache = false } = {}) {
     const url = new URL('http://localhost/api/cambio');
     for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
     const request = new az.HttpRequest({
@@ -41,19 +84,13 @@ export async function invocarAzure({ method = 'POST', body, query = {}, headers 
     });
     const context = new az.InvocationContext({ functionName: 'cambio', logHandler: () => {} });
 
-    const fetchOriginal = globalThis.fetch;
-    const chamadasApi = [];
-    globalThis.fetch = async (alvo) => {
-        chamadasApi.push(String(alvo));
-        if (!cotacaoAoVivo) throw new TypeError('fetch failed');
-        const json = Object.fromEntries(Object.entries(cotacaoAoVivo).map(([m, bid]) => [`${m}BRL`, { bid: String(bid) }]));
-        return { ok: true, json: async () => json };
-    };
+    if (!manterCache) cambio.limparCacheCotacoes();
+    const simulacao = simularApisCotacao(apis);
     try {
         const r = await azureRegistro.handler(request, context);
-        return { status: r.status, headers: r.headers, body: r.jsonBody, chamadasApi };
+        return { status: r.status, headers: r.headers, body: r.jsonBody, chamadasApi: simulacao.chamadas };
     } finally {
-        globalThis.fetch = fetchOriginal;
+        simulacao.restaurar();
     }
 }
 

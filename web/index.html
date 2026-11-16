@@ -297,6 +297,10 @@
                                     <span>Cotação Aplicada:</span>
                                     <span id="valCambio" class="font-mono text-sky-400">--</span>
                                 </div>
+                                <div class="flex justify-between">
+                                    <span>Fonte:</span>
+                                    <span id="fonteCambio" class="text-slate-300 text-right">--</span>
+                                </div>
                             </div>
                         </div>
 
@@ -545,7 +549,7 @@
         // Fonte única dos endpoints (o modal é preenchido a partir daqui)
         const endpoints = {
             aws: 'https://najxnjvcad46j3eoua4nkqlauy0xovyy.lambda-url.sa-east-1.on.aws/',
-            azure: '',
+            azure: 'https://cambio-grupoa-fatec-aae6fbfdcnhrcnay.canadacentral-01.azurewebsites.net/api/cambio',
             gcp: 'https://inflacao-20304353773.us-central1.run.app'
         };
 
@@ -583,11 +587,13 @@
                     setText('valUSD', formatUSD(d.valorUSD));
                     setText('valEUR', formatEUR(d.valorEUR));
                     setText('valCambio', `1 USD = R$ ${Number(d.cotacaoUSD).toFixed(2)}`);
+                    mostrarFonteCambio(d.fonte);
                 },
                 limpar: () => {
                     setText('valUSD', 'Serviço Indisponível');
                     setText('valEUR', '€ --');
                     setText('valCambio', '--');
+                    mostrarFonteCambio(null);
                 }
             },
             gcp: {
@@ -615,6 +621,17 @@
 
         function setText(id, texto) {
             document.getElementById(id).innerText = texto;
+        }
+
+        // De onde veio a cotação da Azure. O link é a atribuição exigida pelo plano gratuito da ExchangeRate-API.
+        const FONTES_CAMBIO = {
+            'awesomeapi': '<a href="https://docs.awesomeapi.com.br/api-de-moedas" target="_blank" rel="noopener" class="underline hover:text-white">AwesomeAPI</a> (ao vivo)',
+            'exchangerate-api': '<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener" class="underline hover:text-white">Rates By Exchange Rate API</a>',
+            'tabela-fixa': 'Tabela fixa (reserva)'
+        };
+
+        function mostrarFonteCambio(fonte) {
+            document.getElementById('fonteCambio').innerHTML = fonte ? (FONTES_CAMBIO[fonte] || escaparHTML(fonte)) : '--';
         }
 
         function setExecutionMode(mode) {

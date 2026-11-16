@@ -37,7 +37,7 @@ Convenção financeira: aportes mensais feitos no **fim** de cada mês.
 ## Deploy
 
 - **AWS Lambda** (Node.js 22): publicar `aws-lambda/index.js`, handler `index.handler`. Na Function URL, usar *Auth type* `NONE`, com a política de recurso permitindo `lambda:InvokeFunctionUrl` **e** `lambda:InvokeFunction` para o principal `*`.
-- **Azure Functions** (Node.js 22, modelo de programação v4): publicar a pasta `azure-functions/` inteira (`host.json` na raiz dela, código em `src/`). A URL fica `https://<app>.azurewebsites.net/api/cambio`. A cotação vem da AwesomeAPI; se ela falhar, a função usa a tabela fixa (USD 5,60 / EUR 6,10), indicado em `data.fonte`.
+- **Azure Functions** (Node.js 22, modelo de programação v4): publicar a pasta `azure-functions/` inteira (`host.json` na raiz dela, código em `src/`). A URL fica `https://<app>.azurewebsites.net/api/cambio`. A cotação vem da AwesomeAPI ou da ExchangeRate-API, consultadas em paralelo (vale a primeira que responder; pior caso ~1,5 s) e guardadas em cache por 5 minutos. Se as duas falharem, a função usa a tabela fixa (USD 5,60 / EUR 6,10). A origem fica em `data.fonte` e aparece no card. **CORS:** em *Function App → API → CORS*, deixe só `*`; com outra origem na lista, a plataforma responde o preflight do navegador sem os headers e o site cai no fallback.
 - **Google Cloud** (Node.js 22): `gcloud functions deploy projetorInflacao --gen2 --runtime=nodejs22 --trigger-http --allow-unauthenticated --source=google-functions`.
 - **Site**: `web/` é estático (ex.: Vercel). As URLs ficam no objeto `endpoints` do `web/index.html` ou podem ser trocadas pela engrenagem da página. Campo vazio = cálculo local.
 

@@ -7,6 +7,8 @@ export const TABELA_FIXA = { USD: 5.60, EUR: 6.10 };
 const MOEDAS_ACEITAS = ['USD', 'EUR'];
 const MODOS_ACEITOS = ['api', 'fixa'];
 const API_COTACAO = 'https://economia.awesomeapi.com.br/json/last/';
+// Segunda fonte pública (sem chave). A AwesomeAPI costuma responder 429 para IPs de nuvem compartilhados.
+const API_COTACAO_RESERVA = 'https://open.er-api.com/v6/latest/BRL';
 
 const arredondar = (n, casas = 2) => Math.round(n * 10 ** casas) / 10 ** casas;
 
@@ -34,8 +36,73 @@ export function validar(body) {
     return { detalhes, montanteBRL, moedas, modo };
 }
 
-// Busca cotação na AwesomeAPI (pública, sem chave). Em qualquer falha devolve null.
-export async function buscarCotacoes(moedas, timeoutMs = 1500) {
+// Cache em memória da instância: evita uma ida às APIs a cada requisição (e o 429 por excesso de chamadas).
+// A ExchangeRate-API só atualiza 1x por dia, então 5 minutos não perdem nada de precisão.
+export const CACHE_TTL_MS = 5 * 60 * 1000;
+let cache = null;          // { cotacoes: { USD, EUR }, fonte, obtidoEm }
+let emAndamento = null;    // consulta em curso, compartilhada por requisições simultâneas
+
+export function limparCacheCotacoes() {
+    cache = null;
+    emAndamento = null;
+}
+
+const selecionar = (cotacoes, moedas) => Object.fromEntries(moedas.map(m => [m, cotacoes[m]]));
+
+// Consulta as duas APIs públicas AO MESMO TEMPO e fica com a primeira que responder com dados válidos.
+// Pior caso: ~1,5 s (um timeout), em vez de 3 s consultando uma depois da outra.
+async function consultarApis() {
+    const tentar = (buscar, fonte) => buscar(MOEDAS_ACEITAS).then(cotacoes => {
+        if (!cotacoes) throw new Error(`${fonte} indisponível`);
+        return { cotacoes, fonte };
+    });
+    try {
+        return await Promise.any([
+            tentar(buscarAwesomeApi, 'awesomeapi'),
+            tentar(buscarExchangeRateApi, 'exchangerate-api')
+        ]);
+    } catch {
+        return null; // as duas falharam
+    }
+}
+
+// Devolve { cotacoes, fonte, emCache } ou null se nenhuma API responder.
+export async function buscarCotacoes(moedas, agora = Date.now()) {
+    if (cache && agora - cache.obtidoEm < CACHE_TTL_MS) {
+        return { cotacoes: selecionar(cache.cotacoes, moedas), fonte: cache.fonte, emCache: true };
+    }
+
+    if (!emAndamento) {
+        emAndamento = consultarApis().then(resultado => {
+            if (resultado) cache = { ...resultado, obtidoEm: agora };
+            return resultado;
+        }).finally(() => { emAndamento = null; });
+    }
+
+    const resultado = await emAndamento;
+    return resultado ? { cotacoes: selecionar(resultado.cotacoes, moedas), fonte: resultado.fonte, emCache: false } : null;
+}
+
+// ExchangeRate-API (open access): taxas a partir do BRL; a cotação em reais é 1 / taxa.
+export async function buscarExchangeRateApi(moedas, timeoutMs = 1500) {
+    try {
+        const res = await fetch(API_COTACAO_RESERVA, { signal: AbortSignal.timeout(timeoutMs) });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const cotacoes = {};
+        for (const m of moedas) {
+            const taxa = Number(json?.rates?.[m]);
+            if (!Number.isFinite(taxa) || taxa <= 0) return null;
+            cotacoes[m] = arredondar(1 / taxa, 4);
+        }
+        return cotacoes;
+    } catch {
+        return null;
+    }
+}
+
+// AwesomeAPI (pública, sem chave). Em qualquer falha devolve null.
+export async function buscarAwesomeApi(moedas, timeoutMs = 1500) {
     try {
         const pares = moedas.map(m => `${m}-BRL`).join(',');
         const res = await fetch(API_COTACAO + pares, { signal: AbortSignal.timeout(timeoutMs) });
@@ -66,8 +133,8 @@ export async function converter(body, { simularErro = false, requestId = null, r
     let cotacoes = null;
     let fonte = 'tabela-fixa';
     if (modo === 'api') {
-        cotacoes = await buscarCotacoes(moedas);
-        if (cotacoes) fonte = 'awesomeapi';
+        const resultado = await buscarCotacoes(moedas);
+        if (resultado) ({ cotacoes, fonte } = resultado);
     }
     if (!cotacoes) {
         cotacoes = Object.fromEntries(moedas.map(m => [m, TABELA_FIXA[m]]));
